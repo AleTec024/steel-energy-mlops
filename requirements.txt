@@ -1,0 +1,42 @@
+# --- Librerías base del curso ---
+numpy
+pandas
+scipy
+matplotlib
+seaborn
+scikit-learn
+
+# --- MLOps / Experiment tracking ---
+dvc
+mlflow
+evidently
+deepchecks
+sdv
+
+# --- API & desarrollo web ---
+fastapi
+
+# --- Testing ---
+pytest
+
+# --- Gestión de proyecto / Cookiecutter ---
+cookiecutter-data-science
+
+# --- Utilidades y entorno ---
+python-dotenv
+tqdm
+loguru
+typer
+
+# --- Estilo y calidad de código ---
+black
+flake8
+isort
+
+# --- Jupyter / notebooks ---
+ipython
+notebook
+jupyterlab
+
+# --- Instalación local del paquete ---
+-e .
