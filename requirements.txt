@@ -39,4 +39,4 @@ notebook
 jupyterlab
 
 # --- Instalación local del paquete ---
--e .
+#-e .
