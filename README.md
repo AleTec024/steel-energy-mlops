@@ -59,3 +59,10 @@ ML pipeline for predicting steel industry energy consumption
 
 --------
 
+### 🚀 Instrucciones para ejecutar notebooks
+Antes de correr cualquier notebook:
+
+1. Asegúrate de tener configurado DVC:
+   ```bash
+   pip install -r requirements.txt
+   dvc pull
