@@ -1,0 +1,5 @@
+outs:
+- md5: b00594d06cb8f55d101fd182137af017
+  size: 12995
+  hash: md5
+  path: usage_daily.csv
