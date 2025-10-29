@@ -1,5 +1,7 @@
+import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
 
 class FeatureEngineer:
     """
@@ -21,7 +23,7 @@ class FeatureEngineer:
 
         missing_cols = [f for f in self.features + [self.target] if f not in df.columns]
         if missing_cols:
-            raise ValueError(f"Missing columns in dataset: {missing_cols}")
+            raise ValueError(f"[ERROR] Missing columns in dataset: {missing_cols}")
 
         X = df[self.features]
         y = df[self.target]
@@ -44,11 +46,31 @@ class FeatureEngineer:
 
         return X_train, X_test, y_train, y_test
 
+    def save_features(self, X: pd.DataFrame, y: pd.Series, output_dir: str = "data/interim"):
+        """
+        Save combined features and target to a single CSV file for DVC tracking.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        feature_path = os.path.join(output_dir, "features.csv")
+
+        df_out = X.copy()
+        df_out[self.target] = y
+        df_out.to_csv(feature_path, index=False)
+
+        print(f"[INFO] Saved feature dataset to: {feature_path}")
+
     def run(self, df: pd.DataFrame, split: bool = True):
         """
-        Run full feature engineering pipeline.
+        Full feature engineering pipeline:
+        - Selects features
+        - Splits data
+        - Saves combined features dataset (for DVC)
         """
         X, y = self.select_features(df)
+
+        # Save all features (for DVC versioning)
+        self.save_features(X, y)
+
         if split:
             return self.split_data(X, y)
         else:
