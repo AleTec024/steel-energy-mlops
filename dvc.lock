@@ -1,0 +1,34 @@
+schema: '2.0'
+stages:
+  data_loader:
+    cmd: python -m src.main --stage data_loader
+    deps:
+    - path: data/clean/steel_energy_cleaned_V2.csv
+      hash: md5
+      md5: 3c90e04e716f464f74335febcb79a6b9
+      size: 5738756
+    - path: src/data/data_loader.py
+      hash: md5
+      md5: 53c324096d96894a2459eb7dcf250cc2
+      size: 3240
+    outs:
+    - path: data/processed/steel_energy_processed.csv
+      hash: md5
+      md5: 20d922c8c5d37fbae386e4943dff8af6
+      size: 2563941
+  feature_engineering:
+    cmd: python -m src.main --stage feature_engineering
+    deps:
+    - path: data/processed/steel_energy_processed.csv
+      hash: md5
+      md5: 20d922c8c5d37fbae386e4943dff8af6
+      size: 2563941
+    - path: src/data/feature_engineer.py
+      hash: md5
+      md5: 728cebd06b81eed01e0cc5ca82261700
+      size: 2592
+    outs:
+    - path: data/interim/features.csv
+      hash: md5
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
