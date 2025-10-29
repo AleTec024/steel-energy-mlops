@@ -1,0 +1,34 @@
+
+stages:
+  data_loader:
+    cmd: python -m src.main --stage data_loader
+    deps:
+      - src/data/data_loader.py
+      - ${data.raw_path}
+    outs:
+      - ${data.processed_path}
+
+  feature_engineering:
+    cmd: python -m src.main --stage feature_engineering
+    deps:
+      - src/data/feature_engineer.py
+      - ${data.processed_path}
+    outs:
+      - data/interim/features.csv
+
+  train_xgboost:
+    cmd: python -m src.main --stage train_xgboost
+    deps:
+      - src/models/xgboost_model/model_trainer.py
+      - data/interim/features.csv
+    params:
+      - train.n_estimators
+      - train.learning_rate
+      - train.max_depth
+      - train.subsample
+      - train.colsample_bytree
+      - train.eval_metric
+      - train.random_state
+      - train.cv_folds
+    outs:
+      - models/xgboost_model/artifacts/model.json
