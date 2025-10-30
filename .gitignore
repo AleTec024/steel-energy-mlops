@@ -3,6 +3,10 @@
 !/data/.gitignore
 !/data/**/*.dvc
 
+# allow raw data for Git tracking
+!/data/raw/
+!/data/raw/**
+
 # Mac OS-specific storage files
 .DS_Store
 
