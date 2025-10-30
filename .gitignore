@@ -7,6 +7,10 @@
 !/data/raw/
 !/data/raw/**
 
+# allow clean folder for DVC tracking
+!/data/clean/
+!/data/clean/**
+
 # Mac OS-specific storage files
 .DS_Store
 
