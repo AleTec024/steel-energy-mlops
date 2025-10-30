@@ -32,3 +32,29 @@ stages:
       hash: md5
       md5: 44e687e98efdda7ac61c667cfca15253
       size: 1676057
+  train_xgboost:
+    cmd: python -m src.main --stage train_xgboost
+    deps:
+    - path: data/interim/features.csv
+      hash: md5
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
+    - path: src/models/xgboost_model/model_trainer.py
+      hash: md5
+      md5: 7b8deb59320886da1a0398eb2a80a4e8
+      size: 2768
+    params:
+      params.yaml:
+        train.colsample_bytree: 0.8
+        train.cv_folds: 5
+        train.eval_metric: rmse
+        train.learning_rate: 0.1
+        train.max_depth: 6
+        train.n_estimators: 200
+        train.random_state: 42
+        train.subsample: 0.8
+    outs:
+    - path: models/xgboost_model/artifacts/model.json
+      hash: md5
+      md5: c4aa85a144a9fad410ccf2b4e7ab41d6
+      size: 1210109
