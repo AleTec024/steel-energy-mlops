@@ -1,6 +1,7 @@
 # src/models/xgboost_model/model_trainer.py
 import numpy as np
 import xgboost as xgb
+import os
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import cross_val_score
 from .config import MODEL_CONFIG, TRAINING_CONFIG
@@ -57,6 +58,15 @@ class ModelTrainer:
         )
         print(f"[INFO] CV R² mean: {scores.mean():.4f} ± {scores.std():.4f}")
         return scores
+       
+    def save_model(self, output_dir="models/xgboost_model/artifacts"):
+        """
+        Save the trained XGBoost model to a JSON file for DVC tracking.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        model_path = os.path.join(output_dir, "model.json")
+        self.model.save_model(model_path)
+        print(f"[INFO] Saved trained model to: {model_path}")
 
     def run(self, X_train, X_test, y_train, y_test):
         """
@@ -64,4 +74,5 @@ class ModelTrainer:
         """
         self.train(X_train, y_train)
         metrics = self.evaluate(X_train, X_test, y_train, y_test)
+        self.save_model()
         return metrics
