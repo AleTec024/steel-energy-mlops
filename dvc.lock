@@ -32,3 +32,78 @@ stages:
       hash: md5
       md5: 44e687e98efdda7ac61c667cfca15253
       size: 1676057
+  train_xgboost:
+    cmd: python -m src.main --stage train_xgboost
+    deps:
+    - path: data/interim/features.csv
+      hash: md5
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
+    - path: src/models/xgboost_model/model_trainer.py
+      hash: md5
+      md5: 7b8deb59320886da1a0398eb2a80a4e8
+      size: 2768
+    params:
+      params.yaml:
+        train.colsample_bytree: 0.8
+        train.cv_folds: 5
+        train.eval_metric: rmse
+        train.learning_rate: 0.1
+        train.max_depth: 6
+        train.n_estimators: 200
+        train.random_state: 42
+        train.subsample: 0.8
+    outs:
+    - path: models/xgboost_model/artifacts/model.json
+      hash: md5
+      md5: c4aa85a144a9fad410ccf2b4e7ab41d6
+      size: 1210109
+  train:
+    cmd: python -m src.main --stage train
+    deps:
+    - path: data/interim/features.csv
+      hash: md5
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
+    - path: src/models/linear_regression_model/model_trainer.py
+      hash: md5
+      md5: 02b319ec54dd4cf0103c2d694f8723ae
+      size: 3541
+    - path: src/models/random_forest_model/model_trainer.py
+      hash: md5
+      md5: 6f1bab95b3410fe460b36f9dfc6afb34
+      size: 3536
+    - path: src/models/xgboost_model/model_trainer.py
+      hash: md5
+      md5: 09c4e4fa121853555f08d6ed6cfd6f1a
+      size: 3805
+    params:
+      params.yaml:
+        train.cv_folds: 5
+        train.linear_regression:
+          fit_intercept: true
+          n_jobs:
+        train.model_type: xgboost
+        train.random_forest:
+          n_estimators: 300
+          max_depth:
+          min_samples_split: 2
+          min_samples_leaf: 1
+          max_features:
+          random_state: 42
+          n_jobs: -1
+        train.xgboost:
+          n_estimators: 200
+          learning_rate: 0.1
+          max_depth: 6
+          subsample: 0.8
+          colsample_bytree: 0.8
+          eval_metric: rmse
+          random_state: 42
+          n_jobs: -1
+    outs:
+    - path: models/xgboost/artifacts
+      hash: md5
+      md5: 86779e5e503ac5d67db738fc40756696.dir
+      size: 854308
+      nfiles: 1
