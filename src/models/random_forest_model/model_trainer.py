@@ -1,5 +1,6 @@
 import os
 import joblib
+import datetime
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -44,14 +45,55 @@ class ModelTrainer:
         print(f"[INFO] CV R² mean: {scores.mean():.4f} ± {scores.std():.4f}")
         return scores
 
-    def save_model(self, output_dir="models/current"):
+    def save_model(self, output_dir="models/current", model_type="random_forest", timestamp=None):
+        """
+        Save model artifact under unique versioned filename
+        and keep a 'current' copy for latest reference.
+        """
         os.makedirs(output_dir, exist_ok=True)
-        path = os.path.join(output_dir, "model.pkl")
-        joblib.dump(self.model, path)
-        print(f"[INFO] Saved trained model to: {path}")
 
-    def run(self, X_train, X_test, y_train, y_test):
+        # 🔹 Create timestamp for unique version naming
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # 🔹 Define both versioned and latest file paths
+        versioned_dir = f"models/{model_type}/artifacts"
+        os.makedirs(versioned_dir, exist_ok=True)
+        versioned_model_path = os.path.join(versioned_dir, f"model_{timestamp}.pkl")
+        latest_model_path = os.path.join(output_dir, "model.pkl")
+
+        # 🔹 Save model depending on type
+        if model_type == "xgboost":
+            self.model.save_model(versioned_model_path)
+        else:
+            joblib.dump(self.model, versioned_model_path)
+
+        # 🔹 Also copy to 'latest'
+        joblib.dump(self.model, latest_model_path)
+
+        print(f"[INFO] Saved versioned model to: {versioned_model_path}")
+        print(f"[INFO] Updated latest model: {latest_model_path}")
+
+        return versioned_model_path
+    
+    def run(self, X_train, X_test, y_train, y_test, model_type="random_forest", timestamp=None):
+        """
+        Full training + evaluation pipeline for Random Forest.
+        Saves model with timestamped filename and logs metrics.
+        """
+        print("[INFO] Starting Random Forest training pipeline...")
+
+        # 1. Train model
         self.train(X_train, y_train)
+
+        # 2. Evaluate performance
         metrics = self.evaluate(X_train, X_test, y_train, y_test)
-        self.save_model()
+
+        # 3. Save model (versioned + current)
+        saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
+
+        print(f"[INFO] Random Forest model saved at: {saved_path}")
+        print(f"[INFO] Random Forest training pipeline complete.\n")
+
         return metrics
+
+    
