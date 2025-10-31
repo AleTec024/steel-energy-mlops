@@ -1,20 +1,37 @@
 vars:
-- params.yaml
+  - params.yaml
 
 stages:
   data_loader:
     cmd: python -m src.main --stage data_loader
     deps:
-    - src/data/data_loader.py
-    - ${data.raw_path}
+      - src/data/data_loader.py
+      - ${data.raw_path}
     outs:
-    - ${data.processed_path}
+      - ${data.processed_path}
 
   feature_engineering:
     cmd: python -m src.main --stage feature_engineering
     deps:
-    - src/data/feature_engineer.py
-    - ${data.processed_path}
+      - src/data/feature_engineer.py
+      - ${data.processed_path}
     outs:
-    - data/interim/features.csv
+      - data/interim/features.csv
 
+  train:
+    cmd: python -m src.main --stage train
+    deps:
+      - src/models/xgboost_model/model_trainer.py
+      - src/models/random_forest_model/model_trainer.py
+      - src/models/linear_regression_model/model_trainer.py
+      - data/interim/features.csv
+    params:
+      - train.model_type
+      - train.cv_folds
+      - train.xgboost
+      - train.random_forest
+      - train.linear_regression
+    outs:
+      - models/xgboost/artifacts
+      - models/random_forest/artifacts
+      - models/linear_regression/artifacts
