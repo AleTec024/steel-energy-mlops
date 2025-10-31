@@ -1,8 +1,10 @@
-# Ignore entire models folder
-models/
+# Ignore entire models folder but allow DVC metadata
+models/*
+!models/
 !models/**/*.dvc
 !models/**/*.yaml
 !models/**/*.json
+
 
 # Data
 /data/*
