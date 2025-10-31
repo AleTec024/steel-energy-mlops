@@ -1,3 +1,9 @@
+# Ignore entire models folder
+models/
+!models/**/*.dvc
+!models/**/*.yaml
+!models/**/*.json
+
 # Data
 /data/*
 !/data/.gitignore
