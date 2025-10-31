@@ -18,12 +18,29 @@ features:
   target: usage_kwh
 
 train:
-  model_type: xgboost
-  n_estimators: 200
-  learning_rate: 0.1
-  max_depth: 6
-  subsample: 0.8
-  colsample_bytree: 0.8
-  eval_metric: rmse
-  random_state: 42
+  model_type: xgboost   # or: random_forest, linear_regression, xgboost
+
+  xgboost:
+    n_estimators: 200
+    learning_rate: 0.1
+    max_depth: 6
+    subsample: 0.8
+    colsample_bytree: 0.8
+    eval_metric: rmse
+    random_state: 42
+    n_jobs: -1
+
+  random_forest:
+    n_estimators: 300
+    max_depth: null
+    min_samples_split: 2
+    min_samples_leaf: 1
+    max_features: null
+    random_state: 42
+    n_jobs: -1
+
+  linear_regression:
+    fit_intercept: true
+    n_jobs: null
+
   cv_folds: 5

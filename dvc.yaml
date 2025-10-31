@@ -1,3 +1,5 @@
+vars:
+  - params.yaml
 
 stages:
   data_loader:
@@ -16,19 +18,21 @@ stages:
     outs:
       - data/interim/features.csv
 
-  train_xgboost:
-    cmd: python -m src.main --stage train_xgboost
+  train:
+    cmd: python -m src.main --stage train
     deps:
       - src/models/xgboost_model/model_trainer.py
+      - src/models/random_forest_model/model_trainer.py
+      - src/models/linear_regression_model/model_trainer.py
       - data/interim/features.csv
     params:
-      - train.n_estimators
-      - train.learning_rate
-      - train.max_depth
-      - train.subsample
-      - train.colsample_bytree
-      - train.eval_metric
-      - train.random_state
+      - train.model_type
       - train.cv_folds
+      - train.xgboost
+      - train.random_forest
+      - train.linear_regression
+      # WAATTTTTCHHHH UOTTTTTT!!,,, enable the model output to be used
     outs:
-      - models/xgboost_model/artifacts/model.json
+      - models/xgboost/artifacts
+      #- models/random_forest/artifacts
+      #- models/linear_regression/artifacts
