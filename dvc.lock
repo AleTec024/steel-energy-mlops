@@ -82,9 +82,9 @@ stages:
         train.cv_folds: 5
         train.linear_regression.fit_intercept: true
         train.linear_regression.n_jobs:
-        train.model_type: xgboost
+        train.model_type: linear_regression
         train.random_forest.max_depth:
-        train.random_forest.max_features: auto
+        train.random_forest.max_features:
         train.random_forest.min_samples_leaf: 1
         train.random_forest.min_samples_split: 2
         train.random_forest.n_estimators: 300
@@ -101,6 +101,6 @@ stages:
     outs:
     - path: models/current/
       hash: md5
-      md5: 5ac4971672ec5edcdeb9d82349a3581a.dir
-      size: 1210109
+      md5: 53ab9fbf033673aca72a45d60302366b.dir
+      size: 1233
       nfiles: 1
