@@ -1,3 +1,5 @@
+vars:
+  - params.yaml
 
 stages:
   data_loader:
@@ -16,19 +18,35 @@ stages:
     outs:
       - data/interim/features.csv
 
-  train_xgboost:
-    cmd: python -m src.main --stage train_xgboost
+  train:
+    cmd: python -m src.main --stage train
     deps:
       - src/models/xgboost_model/model_trainer.py
+      - src/models/random_forest_model/model_trainer.py
+      - src/models/linear_regression_model/model_trainer.py
       - data/interim/features.csv
     params:
-      - train.n_estimators
-      - train.learning_rate
-      - train.max_depth
-      - train.subsample
-      - train.colsample_bytree
-      - train.eval_metric
-      - train.random_state
+      - train.model_type
       - train.cv_folds
+      # XGBoost params
+      - train.xgboost.n_estimators
+      - train.xgboost.learning_rate
+      - train.xgboost.max_depth
+      - train.xgboost.subsample
+      - train.xgboost.colsample_bytree
+      - train.xgboost.eval_metric
+      - train.xgboost.random_state
+      - train.xgboost.n_jobs
+      # Random Forest params
+      - train.random_forest.n_estimators
+      - train.random_forest.max_depth
+      - train.random_forest.min_samples_split
+      - train.random_forest.min_samples_leaf
+      - train.random_forest.max_features
+      - train.random_forest.random_state
+      - train.random_forest.n_jobs
+      # Linear Regression params
+      - train.linear_regression.fit_intercept
+      - train.linear_regression.n_jobs
     outs:
-      - models/xgboost_model/artifacts/model.json
+      - models/current/
