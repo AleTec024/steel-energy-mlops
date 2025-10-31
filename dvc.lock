@@ -82,7 +82,7 @@ stages:
         train.cv_folds: 5
         train.linear_regression.fit_intercept: true
         train.linear_regression.n_jobs:
-        train.model_type: linear_regression
+        train.model_type: random_forest
         train.random_forest.max_depth:
         train.random_forest.max_features:
         train.random_forest.min_samples_leaf: 1
@@ -101,6 +101,6 @@ stages:
     outs:
     - path: models/current/
       hash: md5
-      md5: 53ab9fbf033673aca72a45d60302366b.dir
-      size: 1233
+      md5: 23783f7237325aae7591cd747c689a57.dir
+      size: 212346161
       nfiles: 1
