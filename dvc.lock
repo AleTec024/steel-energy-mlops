@@ -58,3 +58,49 @@ stages:
       hash: md5
       md5: c4aa85a144a9fad410ccf2b4e7ab41d6
       size: 1210109
+  train:
+    cmd: python -m src.main --stage train
+    deps:
+    - path: data/interim/features.csv
+      hash: md5
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
+    - path: src/models/linear_regression_model/model_trainer.py
+      hash: md5
+      md5: a1cf789e040c2faad5c31d614d4dabd6
+      size: 2285
+    - path: src/models/random_forest_model/model_trainer.py
+      hash: md5
+      md5: 12adab63e510a9accf51335b9cc932a3
+      size: 2294
+    - path: src/models/xgboost_model/model_trainer.py
+      hash: md5
+      md5: 4960c3a7bea1b86964cec02f71ed435f
+      size: 2757
+    params:
+      params.yaml:
+        train.cv_folds: 5
+        train.linear_regression.fit_intercept: true
+        train.linear_regression.n_jobs:
+        train.model_type: xgboost
+        train.random_forest.max_depth:
+        train.random_forest.max_features: auto
+        train.random_forest.min_samples_leaf: 1
+        train.random_forest.min_samples_split: 2
+        train.random_forest.n_estimators: 300
+        train.random_forest.n_jobs: -1
+        train.random_forest.random_state: 42
+        train.xgboost.colsample_bytree: 0.8
+        train.xgboost.eval_metric: rmse
+        train.xgboost.learning_rate: 0.1
+        train.xgboost.max_depth: 6
+        train.xgboost.n_estimators: 200
+        train.xgboost.n_jobs: -1
+        train.xgboost.random_state: 42
+        train.xgboost.subsample: 0.8
+    outs:
+    - path: models/current/
+      hash: md5
+      md5: 5ac4971672ec5edcdeb9d82349a3581a.dir
+      size: 1210109
+      nfiles: 1
