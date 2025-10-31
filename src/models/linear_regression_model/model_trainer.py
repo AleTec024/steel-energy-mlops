@@ -45,35 +45,30 @@ class ModelTrainer:
         print(f"[INFO] CV R² mean: {scores.mean():.4f} ± {scores.std():.4f}")
         return scores
 
-    def save_model(self, output_dir="models/current", model_type="linear_regression",timestamp=None ):
+    def save_model(self, model_type="linear_regression", timestamp=None):
         """
-        Save model artifact under unique versioned filename
-        and keep a 'current' copy for latest reference.
+        Save model artifact under a unique versioned filename only.
+        No 'current' duplicate is created.
         """
-        os.makedirs(output_dir, exist_ok=True)
+        import os, datetime, joblib
 
-        # 🔹 Create timestamp for unique version naming
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Timestamp for versioning
+        if timestamp is None:
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # 🔹 Define both versioned and latest file paths
+        # Versioned directory for this model type
         versioned_dir = f"models/{model_type}/artifacts"
         os.makedirs(versioned_dir, exist_ok=True)
+
+        # File path (unique)
         versioned_model_path = os.path.join(versioned_dir, f"model_{timestamp}.pkl")
-        latest_model_path = os.path.join(output_dir, "model.pkl")
 
-        # 🔹 Save model depending on type
-        if model_type == "xgboost":
-            self.model.save_model(versioned_model_path)
-        else:
-            joblib.dump(self.model, versioned_model_path)
+        # Save model (sklearn joblib)
+        joblib.dump(self.model, versioned_model_path)
 
-        # 🔹 Also copy to 'latest'
-        joblib.dump(self.model, latest_model_path)
-
-        print(f"[INFO] Saved versioned model to: {versioned_model_path}")
-        print(f"[INFO] Updated latest model: {latest_model_path}")
-
+        print(f"[INFO] ✅ Saved versioned model to: {versioned_model_path}")
         return versioned_model_path
+
 
     def run(self, X_train, X_test, y_train, y_test, model_type="linear_regression", timestamp=None):
         """
