@@ -2,6 +2,8 @@
 import numpy as np
 import xgboost as xgb
 import os
+import datetime
+import joblib  # for sklearn models
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import cross_val_score
 from .config import MODEL_CONFIG, TRAINING_CONFIG
@@ -59,20 +61,53 @@ class ModelTrainer:
         print(f"[INFO] CV R² mean: {scores.mean():.4f} ± {scores.std():.4f}")
         return scores
        
-    def save_model(self, output_dir="models/current"):
+    def save_model(self, output_dir="models/current", model_type="xgboost",  timestamp=None ):
         """
-        Save the trained XGBoost model in a unified folder for DVC tracking.
+        Save model artifact under unique versioned filename
+        and keep a 'current' copy for latest reference.
         """
         os.makedirs(output_dir, exist_ok=True)
-        model_path = os.path.join(output_dir, "model.json")
-        self.model.save_model(model_path)
-        print(f"[INFO] Saved trained model to: {model_path}")
 
-    def run(self, X_train, X_test, y_train, y_test):
+        # 🔹 Create timestamp for unique version naming
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # 🔹 Define both versioned and latest file paths
+        versioned_dir = f"models/{model_type}/artifacts"
+        os.makedirs(versioned_dir, exist_ok=True)
+        versioned_model_path = os.path.join(versioned_dir, f"model_{timestamp}.pkl")
+        latest_model_path = os.path.join(output_dir, "model.pkl")
+
+        # 🔹 Save model depending on type
+        if model_type == "xgboost":
+            self.model.save_model(versioned_model_path)
+        else:
+            joblib.dump(self.model, versioned_model_path)
+
+        # 🔹 Also copy to 'latest'
+        joblib.dump(self.model, latest_model_path)
+
+        print(f"[INFO] Saved versioned model to: {versioned_model_path}")
+        print(f"[INFO] Updated latest model: {latest_model_path}")
+
+        return versioned_model_path
+
+    def run(self, X_train, X_test, y_train, y_test, model_type="xgboost", timestamp=None):
         """
-        Full training + evaluation pipeline.
+        Full training + evaluation pipeline for XGBoost.
+        Saves model with timestamped filename and logs metrics.
         """
+        print("[INFO] Starting XGBoost training pipeline...")
+
+        # 1. Train model
         self.train(X_train, y_train)
+
+        # 2. Evaluate performance
         metrics = self.evaluate(X_train, X_test, y_train, y_test)
-        self.save_model()
+
+        # 3. Save model (versioned + current)
+        saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
+
+        print(f"[INFO] XGBoost model saved at: {saved_path}")
+        print(f"[INFO] XGBoost training pipeline complete.\n")
+
         return metrics

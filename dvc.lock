@@ -67,22 +67,22 @@ stages:
       size: 1676057
     - path: src/models/linear_regression_model/model_trainer.py
       hash: md5
-      md5: a1cf789e040c2faad5c31d614d4dabd6
-      size: 2285
+      md5: a55f32d9839eb1cb69b4a89e418ae2df
+      size: 3893
     - path: src/models/random_forest_model/model_trainer.py
       hash: md5
-      md5: 12adab63e510a9accf51335b9cc932a3
-      size: 2294
+      md5: 1b5c65591f06ba534e63779c25422fe4
+      size: 3888
     - path: src/models/xgboost_model/model_trainer.py
       hash: md5
-      md5: 4960c3a7bea1b86964cec02f71ed435f
-      size: 2757
+      md5: d6931d69f86b9e3d932b87ec987a466a
+      size: 4149
     params:
       params.yaml:
         train.cv_folds: 5
         train.linear_regression.fit_intercept: true
         train.linear_regression.n_jobs:
-        train.model_type: random_forest
+        train.model_type: linear_regression
         train.random_forest.max_depth:
         train.random_forest.max_features:
         train.random_forest.min_samples_leaf: 1
@@ -101,6 +101,6 @@ stages:
     outs:
     - path: models/current/
       hash: md5
-      md5: 23783f7237325aae7591cd747c689a57.dir
-      size: 212346161
+      md5: 53ab9fbf033673aca72a45d60302366b.dir
+      size: 1233
       nfiles: 1
