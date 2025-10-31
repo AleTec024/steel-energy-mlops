@@ -31,7 +31,8 @@ stages:
       - train.xgboost
       - train.random_forest
       - train.linear_regression
+      # WAATTTTTCHHHH UOTTTTTT!!,,, enable the model output to be used
     outs:
       - models/xgboost/artifacts
-      - models/random_forest/artifacts
-      - models/linear_regression/artifacts
+      #- models/random_forest/artifacts
+      #- models/linear_regression/artifacts
