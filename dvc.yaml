@@ -36,3 +36,24 @@ stages:
       - models/xgboost/artifacts
       #- models/random_forest/artifacts
       #- models/linear_regression/artifacts
+
+        # NUEVA etapa: orquestador con MLflow (varios modelos)
+  train_suite:
+    cmd: python -m src.pipelines.experiment_pipelines --params params.yaml
+    deps:
+      - src/pipelines/experiment_pipelines.py
+      - src/pipelines/data_setup.py
+      - src/utils/env.py
+      - params.yaml
+      - data/interim/features.csv
+    outs:
+      - reports
+    params:
+      - train.model_types
+      - train.model_type
+      - train.cv_folds
+      - train.xgboost
+      - train.random_forest
+      - train.linear_regression
+      - mlflow.register_model
+      - mlflow.model_name

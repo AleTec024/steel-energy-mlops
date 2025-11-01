@@ -18,7 +18,13 @@ features:
   target: usage_kwh
 
 train:
-  model_type: xgboost   # or: random_forest, linear_regression, xgboost
+  # compat con DVC (aunque uses model_types)
+  model_type: xgboost
+
+  # corre varios modelos en una sola ejecución
+  model_types: [xgboost, random_forest, linear_regression]
+
+  cv_folds: 5
 
   xgboost:
     n_estimators: 200
@@ -43,4 +49,7 @@ train:
     fit_intercept: true
     n_jobs: null
 
-  cv_folds: 5
+mlflow:
+  register_model: false        # true si quieres registrar en Registry
+  model_name: "steel-energy/suite"
+  use_gpu: false
