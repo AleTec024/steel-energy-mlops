@@ -209,3 +209,4 @@ cython_debug/
 .pypirc
 # Reports, logs y outputs
 reports/
+/reports

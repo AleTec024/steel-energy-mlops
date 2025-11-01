@@ -21,6 +21,7 @@ from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder 
 from sklearn.model_selection import GridSearchCV, cross_validate, train_test_split
+from sklearn.ensemble import RandomForestRegressor
 
 try:
     from xgboost import XGBRegressor
@@ -306,14 +307,12 @@ def _build_pipeline_by_schema(model_type: str, train_cfg: dict) -> Pipeline:
     return Pipeline([("regressor", model)])
 
 def run_with_mlflow(params_path: str = "params.yaml"):
+    from mlflow.models import infer_signature
+
     env = load_env()
     params = _load_params(params_path)
 
-    # Lee esquema
-    model_type = params.get("train", {}).get("model_type", "xgboost")
-    cv_folds   = int(params.get("train", {}).get("cv_folds", 5))
-
-    # MLflow
+    # MLflow base
     if env.get("MLFLOW_TRACKING_URI"):
         mlflow.set_tracking_uri(env["MLFLOW_TRACKING_URI"])
     mlflow.set_experiment(env.get("EXPERIMENT_NAME", "steel-energy"))
@@ -321,83 +320,108 @@ def run_with_mlflow(params_path: str = "params.yaml"):
     # Datos
     df, X, y, data_path, target_col, selected = _load_data_by_schema(params)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
-        test_size=0.2,  # puedes moverlo a params.train si gustas
-        random_state=42
+        X, y, test_size=0.2, random_state=42
     )
 
-    # Pipeline por schema
-    pipe = _build_pipeline_by_schema(model_type, params.get("train", {}))
+    # Modelos a ejecutar (lista) o uno solo por compatibilidad
+    model_types = params.get("train", {}).get("model_types")
+    if not model_types:
+        model_types = [params.get("train", {}).get("model_type", "xgboost")]
+    cv_folds = int(params.get("train", {}).get("cv_folds", 5))
 
-    # CV opcional (si > 0)
-    cv_summary = None
-    if cv_folds and cv_folds > 1:
-        scoring = {
-            "rmse": "neg_root_mean_squared_error",
-            "mae": "neg_mean_absolute_error",
-            "r2": "r2",
-        }
-        cv_res = cross_validate(pipe, X, y, cv=cv_folds, scoring=scoring, return_train_score=True)
-        # resumen
-        import numpy as np, pandas as pd
-        cv_summary = pd.DataFrame({
-            "metric": ["rmse", "mae", "r2"],
-            "train_mean": [-cv_res["train_rmse"].mean(), -cv_res["train_mae"].mean(),  cv_res["train_r2"].mean()],
-            "test_mean":  [-cv_res["test_rmse"].mean(),  -cv_res["test_mae"].mean(),   cv_res["test_r2"].mean()],
-            "test_std":   [ cv_res["test_rmse"].std(),    cv_res["test_mae"].std(),     cv_res["test_r2"].std()],
-        })
+    # Run padre para agrupar toda la suite
+    with mlflow.start_run(run_name="suite_train", nested=False):
+        for mt in model_types:
+            # Construye pipeline según el esquema/params
+            pipe = _build_pipeline_by_schema(mt, params.get("train", {}))
 
-    # Fit + evaluación final
-    pipe.fit(X_train, y_train)
-    metrics = evaluate_regression(pipe, X_train, X_test, y_train, y_test, label=model_type)
+            # CV opcional (si > 1)
+            cv_summary = None
+            if cv_folds and cv_folds > 1:
+                scoring = {
+                    "rmse": "neg_root_mean_squared_error",
+                    "mae": "neg_mean_absolute_error",
+                    "r2": "r2",
+                }
+                cv_res = cross_validate(
+                    pipe, X, y, cv=cv_folds, scoring=scoring, return_train_score=True
+                )
+                import pandas as pd
+                cv_summary = pd.DataFrame({
+                    "metric": ["rmse", "mae", "r2"],
+                    "train_mean": [-cv_res["train_rmse"].mean(), -cv_res["train_mae"].mean(),  cv_res["train_r2"].mean()],
+                    "test_mean":  [-cv_res["test_rmse"].mean(),  -cv_res["test_mae"].mean(),   cv_res["test_r2"].mean()],
+                    "test_std":   [ cv_res["test_rmse"].std(),    cv_res["test_mae"].std(),     cv_res["test_r2"].std()],
+                })
 
-    # Log en MLflow
-    with mlflow.start_run(run_name=f"train_{model_type}") as run:
-        run_id = run.info.run_id
+            # Fit + evaluación final
+            pipe.fit(X_train, y_train)
+            metrics = evaluate_regression(pipe, X_train, X_test, y_train, y_test, label=mt)
 
-        # Tags y params de trazabilidad
-        mlflow.set_tags({
-            "stage": env.get("ENV", "local"),
-            "data_path": data_path,
-            "target": target_col,
-            "n_features": len(selected),
-        })
-        # HParams del bloque de modelo
-        for k, v in (params.get("train", {}).get(model_type, {}) or {}).items():
-            mlflow.log_param(f"{model_type}_{k}", v)
-        mlflow.log_param("model_type", model_type)
-        mlflow.log_param("cv_folds", cv_folds)
+            # Run hijo por modelo
+            with mlflow.start_run(run_name=f"train_{mt}", nested=True) as run:
+                run_id = run.info.run_id
 
-        # Métricas
-        mlflow.log_metrics({
-            "rmse_train": metrics["rmse_train"],
-            "rmse_test":  metrics["rmse_test"],
-            "mae_test":   metrics["mae_test"],
-            "r2_train":   metrics["r2_train"],
-            "r2_test":    metrics["r2_test"],
-        })
+                # Tags/params
+                mlflow.set_tags({
+                    "stage": env.get("ENV", "local"),
+                    "data_path": data_path,
+                    "target": target_col,
+                    "n_features": len(selected),
+                    "model_family": mt,
+                })
+                for k, v in (params.get("train", {}).get(mt, {}) or {}).items():
+                    mlflow.log_param(f"{mt}_{k}", v)
+                mlflow.log_param("cv_folds", cv_folds)
 
-        # Artefactos
-        reports = Path("reports"); reports.mkdir(parents=True, exist_ok=True)
-        # guarda métricas y columnas usadas
-        (reports / "used_columns.txt").write_text("\n".join(selected), encoding="utf-8")
-        mlflow.log_artifact(str(reports / "used_columns.txt"))
+                # Métricas
+                mlflow.log_metrics({
+                    "rmse_train": metrics["rmse_train"],
+                    "rmse_test":  metrics["rmse_test"],
+                    "mae_test":   metrics["mae_test"],
+                    "r2_train":   metrics["r2_train"],
+                    "r2_test":    metrics["r2_test"],
+                })
 
-        import json
-        metrics_path = reports / f"metrics_{model_type}.json"
-        with open(metrics_path, "w", encoding="utf-8") as f:
-            json.dump(metrics, f, indent=2)
-        mlflow.log_artifact(str(metrics_path))
+                # Artefactos
+                reports = Path("reports"); reports.mkdir(parents=True, exist_ok=True)
+                (reports / "used_columns.txt").write_text("\n".join(selected), encoding="utf-8")
+                mlflow.log_artifact(str(reports / "used_columns.txt"))
 
-        if cv_summary is not None:
-            cv_path = reports / f"cv_summary_{model_type}.csv"
-            cv_summary.to_csv(cv_path, index=False)
-            mlflow.log_artifact(str(cv_path))
+                import json
+                metrics_path = reports / f"metrics_{mt}.json"
+                with open(metrics_path, "w", encoding="utf-8") as f:
+                    json.dump(metrics, f, indent=2)
+                mlflow.log_artifact(str(metrics_path))
 
-        # Modelo (pipeline completo)
-        mlflow.sklearn.log_model(pipe, artifact_path="model")
+                if cv_summary is not None:
+                    cv_path = reports / f"cv_summary_{mt}.csv"
+                    cv_summary.to_csv(cv_path, index=False)
+                    mlflow.log_artifact(str(cv_path))
 
-        print(f"✅ Run {run_id} | {model_type} | rmse_test={metrics['rmse_test']:.4f} | r2_test={metrics['r2_test']:.4f}")
+                # Firma + ejemplo de entrada (elimina el warning)
+                y_pred_train = pipe.predict(X_train)
+                signature = infer_signature(X_train, y_pred_train)
+                input_example = X_train.head(3)
+
+                mlflow.sklearn.log_model(
+                    pipe,
+                    artifact_path="model",
+                    signature=signature,
+                    input_example=input_example,
+                )
+
+                # (Opcional) Registrar en Model Registry
+                mlflow_cfg = (params.get("mlflow") or {})
+                if mlflow_cfg.get("register_model", False):
+                    model_name = mlflow_cfg.get("model_name", f"steel-energy/{mt}")
+                    mlflow.register_model(
+                        model_uri=f"runs:/{run_id}/model",
+                        name=model_name
+                    )
+
+                print(f"✅ Run {run_id} | {mt} | rmse_test={metrics['rmse_test']:.4f} | r2_test={metrics['r2_test']:.4f}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
