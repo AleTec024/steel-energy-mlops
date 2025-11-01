@@ -75,8 +75,8 @@ stages:
       size: 3536
     - path: src/models/xgboost_model/model_trainer.py
       hash: md5
-      md5: 09c4e4fa121853555f08d6ed6cfd6f1a
-      size: 3805
+      md5: 581bc698e222b40e05b6bd9bf5bd1e36
+      size: 3803
     params:
       params.yaml:
         train.cv_folds: 5
@@ -104,6 +104,6 @@ stages:
     outs:
     - path: models/xgboost/artifacts
       hash: md5
-      md5: 86779e5e503ac5d67db738fc40756696.dir
-      size: 854308
+      md5: 865033dbb0c098a8d2d115c7d2ff98e5.dir
+      size: 852614
       nfiles: 1
