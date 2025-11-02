@@ -46,12 +46,10 @@ stages:
       - src/utils/env.py
       - params.yaml
       - data/interim/features.csv
-    outs:
-      - reports
-      # (opcional) si quieres versionar también los .pkl con DVC:
-      # - models/random_forest/artifacts
-      # - models/linear_regression/artifacts
-      # - models/xgboost/artifacts
+    # outs:    # <-- QUITA este bloque para evitar el solapamiento
+    #   - reports:
+    #       cache: true
+    #       persist: true
     params:
       - train.model_types
       - train.model_type
