@@ -1,3 +1,2 @@
-from .model_trainer import ModelTrainer, PipelineModelTrainer
+from .model_trainer import ModelTrainer
 
-__all__ = ["ModelTrainer", "PipelineModelTrainer"]

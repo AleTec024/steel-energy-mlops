@@ -300,11 +300,6 @@ from sklearn.model_selection import train_test_split
 from src.utils.env import load_env
 load_env()
 
-# Usamos los trainers que ya instrumentaste con MLflow
-from src.models.random_forest_model.model_trainer import ModelTrainer as RFTrainer
-from src.models.linear_regression_model.model_trainer import ModelTrainer as LINTrainer
-from src.models.xgboost_model.model_trainer import ModelTrainer as XGBTrainer
-
 # Rutas de métricas que DVC espera
 METRIC_PATHS = {
     "random_forest": "reports/metrics_rf.json",

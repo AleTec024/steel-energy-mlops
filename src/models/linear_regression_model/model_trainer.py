@@ -8,7 +8,6 @@ from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 
 from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
-from src.pipelines.experiment_pipelines import build_feature_engineering_pipeline, build_preprocessor
 from .config import MODEL_CONFIG, TRAINING_CONFIG
 # --- MLflow opcional y utilidades ---
 os.environ["MLFLOW_ENABLE_LOGGED_MODELS"] = "false"

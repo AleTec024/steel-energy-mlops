@@ -24,6 +24,26 @@ try:
 except Exception:
     _MLFLOW_AVAILABLE = False
 
+
+def _ensure_experiment(exp_name: str, artifact_location: str | None) -> str:
+    import mlflow
+    exp = mlflow.get_experiment_by_name(exp_name)
+    if exp is None:
+        mlflow.create_experiment(exp_name, artifact_location=artifact_location)
+        mlflow.set_experiment(exp_name)
+        return exp_name
+    # Si el experimento existente usa mlflow-artifacts (requiere servidor HTTP),
+    # crea uno nuevo con sufijo -s3 apuntando a S3:
+    if exp.artifact_location and exp.artifact_location.startswith("mlflow-artifacts:"):
+        new_name = exp_name + "-s3"
+        new_exp = mlflow.get_experiment_by_name(new_name)
+        if new_exp is None:
+            mlflow.create_experiment(new_name, artifact_location=artifact_location)
+        mlflow.set_experiment(new_name)
+        return new_name
+    # Si ya apunta a S3 u otro repo válido, úsalo
+    mlflow.set_experiment(exp_name)
+    return exp_name
 class ModelTrainer:
     """
     Trains, evaluates, and validates a Random Forest regression model.
@@ -151,14 +171,27 @@ class ModelTrainer:
         Full training + evaluation pipeline for Random Forest.
         Saves model with timestamped filename and logs metrics.
         """
-        # 0) Configurar entorno de MLflow
-        env_vars = load_env()
-        mlflow.set_tracking_uri(env_vars["MLFLOW_TRACKING_URI"])
+        # # 0) Configurar entorno de MLflow
+        # env_vars = load_env()
+        # mlflow.set_tracking_uri(env_vars["MLFLOW_TRACKING_URI"])
 
-        # Experimento específico para RF (p.ej., "steel-energy-rf")
+        # # Experimento específico para RF (p.ej., "steel-energy-rf")
+        # base_exp = env_vars.get("EXPERIMENT_NAME", "steel-energy")
+        # rf_exp = os.getenv("RF_EXPERIMENT_NAME", f"{base_exp}-rf")
+        # mlflow.set_experiment(rf_exp)
+
+        # self._ensure_output_dirs()
+        # print("[INFO] Starting Random Forest training pipeline...")
+
+       # 0) Configurar entorno de MLflow
+        env_vars = load_env()
+        mlflow.set_tracking_uri(env_vars["MLFLOW_TRACKING_URI"])  # ← apunta a RDS (OK)
+
         base_exp = env_vars.get("EXPERIMENT_NAME", "steel-energy")
-        rf_exp = os.getenv("RF_EXPERIMENT_NAME", f"{base_exp}-rf")
-        mlflow.set_experiment(rf_exp)
+        rf_exp_raw = os.getenv("RF_EXPERIMENT_NAME", f"{base_exp}-rf")
+        # fuerza artifact_location a S3 (usa tu variable .env de S3)
+        artifact_loc = os.getenv("ARTIFACTS_URI")  # ej: s3://steel-energy-mlops-artifacts/experiments/rf/
+        rf_exp = _ensure_experiment(rf_exp_raw, artifact_loc)  # ← puede devolver rf_exp_raw o rf_exp_raw+"-s3"
 
         self._ensure_output_dirs()
         print("[INFO] Starting Random Forest training pipeline...")
@@ -188,7 +221,16 @@ class ModelTrainer:
             y_pred = self.model.predict(X_test)
             resid_fig = "reports/figures/residuals_rf.png"
             self._plot_residuals(y_test, y_pred, resid_fig)
-            mlflow.log_artifact(resid_fig)
+            import time
+            for attempt in range(3):
+                try:
+                    mlflow.log_artifact(resid_fig)
+                    break
+                except Exception as e:
+                    print(f"[WARN] Upload resid_fig falló (intento {attempt+1}/3): {e}")
+                    time.sleep(2)
+            else:
+                raise RuntimeError("No se pudo subir resid_fig tras 3 intentos")
 
             # 5) Guardar métricas a archivo (para DVC) + log
             metrics_path = "reports/metrics_rf.json"
@@ -200,7 +242,18 @@ class ModelTrainer:
 
             # 6) Guardar modelo .pkl con timestamp + log
             saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
-            mlflow.log_artifact(saved_path)
+            # mlflow.log_artifact(saved_path)
+            import time
+            for attempt in range(3):
+                try:
+                    mlflow.log_artifact(saved_path)
+                    break
+                except Exception as e:
+                    print(f"[WARN] Falló upload del .pkl a MLflow (intento {attempt+1}/3): {e}")
+                    time.sleep(2)
+            else:
+                raise RuntimeError("No se pudo subir el .pkl como artifact a MLflow tras 3 intentos")
+
 
             # 7) Subir el modelo en formato MLflow SIN usar logged-models (carpeta temporal)
             from tempfile import TemporaryDirectory

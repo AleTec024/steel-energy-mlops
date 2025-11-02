@@ -46,7 +46,7 @@ stages:
       - src/utils/env.py
       - params.yaml
       - data/interim/features.csv
-    # outs:    # <-- QUITA este bloque para evitar el solapamiento
+    # outs:    # <-- No outputs, solo métricas y parámetros
     #   - reports:
     #       cache: true
     #       persist: true

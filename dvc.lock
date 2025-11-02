@@ -5,33 +5,33 @@ stages:
     deps:
     - path: data/clean/steel_energy_cleaned_V2.csv
       hash: md5
-      md5: 3c90e04e716f464f74335febcb79a6b9
-      size: 5738756
+      md5: f9b2bf1156175d4d8c8c8d645c21cdfd
+      size: 5703433
     - path: src/data/data_loader.py
       hash: md5
-      md5: 53c324096d96894a2459eb7dcf250cc2
-      size: 3240
+      md5: 1ec79ff2337369664421da04b88a8f8a
+      size: 3143
     outs:
     - path: data/processed/steel_energy_processed.csv
       hash: md5
-      md5: 20d922c8c5d37fbae386e4943dff8af6
-      size: 2563941
+      md5: 9218542ac6a01da797a4ae934e103fe8
+      size: 2551398
   feature_engineering:
     cmd: python -m src.main --stage feature_engineering
     deps:
     - path: data/processed/steel_energy_processed.csv
       hash: md5
-      md5: 20d922c8c5d37fbae386e4943dff8af6
-      size: 2563941
+      md5: 9218542ac6a01da797a4ae934e103fe8
+      size: 2551398
     - path: src/data/feature_engineer.py
       hash: md5
-      md5: 44e71be9c8aa3777566b08ca1ef0d3ea
-      size: 2515
+      md5: 7c5ced138a8e9382cfb2a61939139174
+      size: 10575
     outs:
     - path: data/interim/features.csv
       hash: md5
-      md5: 44e687e98efdda7ac61c667cfca15253
-      size: 1676057
+      md5: 59e7937ef99320a36d6301bb610ade34
+      size: 1664034
   train_xgboost:
     cmd: python -m src.main --stage train_xgboost
     deps:
