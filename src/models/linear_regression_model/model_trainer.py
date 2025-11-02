@@ -208,6 +208,15 @@ class ModelTrainer:
             # Log de métricas
             self._mlflow_log_metrics(metrics)
 
+            # --- Guardar métricas para DVC + log a MLflow ---
+            import json as _json
+            metrics_path = "reports/metrics_linear.json"
+            import os as _os
+            _os.makedirs("reports", exist_ok=True)
+            with open(metrics_path, "w") as f:
+                _json.dump({k: float(v) for k, v in metrics.items()}, f, indent=2)
+            if self.use_mlflow:
+                mlflow.log_artifact(metrics_path)
             # 2.1) Residuales → artifact
             try:
                 import os as _os

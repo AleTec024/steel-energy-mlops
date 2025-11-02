@@ -224,7 +224,14 @@ class ModelTrainer:
             # 3) Guardar modelo .pkl y subir artifacts (incluye formato MLflow temporal)
             saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
             self._mlflow_log_artifacts_and_model(saved_path, model_type=model_type)
-
+            # --- Guardar métricas para DVC + log a MLflow ---
+            import json as _json
+            metrics_path = "reports/metrics_xgb.json"
+            os.makedirs("reports", exist_ok=True)
+            with open(metrics_path, "w") as f:
+                _json.dump({k: float(v) for k, v in metrics.items()}, f, indent=2)
+            if self.use_mlflow:
+                mlflow.log_artifact(metrics_path)
             print(f"[INFO] XGBoost model saved at: {saved_path}")
             print(f"[INFO] XGBoost training pipeline complete.\n")
             return metrics

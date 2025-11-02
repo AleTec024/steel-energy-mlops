@@ -1,4 +1,3 @@
-import os
 import joblib
 import datetime
 import numpy as np
@@ -12,22 +11,71 @@ from .config import MODEL_CONFIG, TRAINING_CONFIG
 import json
 from pathlib import Path
 import matplotlib.pyplot as plt
-import mlflow
-import mlflow.sklearn
 from src.utils.env import load_env  # para cargar el .env
 from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
 from src.pipelines.experiment_pipelines import build_feature_engineering_pipeline, build_preprocessor
 
+import os
+os.environ["MLFLOW_ENABLE_LOGGED_MODELS"] = "false"
+
+try:
+    import mlflow
+    import mlflow.sklearn
+    _MLFLOW_AVAILABLE = True
+except Exception:
+    _MLFLOW_AVAILABLE = False
 
 class ModelTrainer:
     """
     Trains, evaluates, and validates a Random Forest regression model.
     """
 
-    def __init__(self, model_params=None, training_params=None):
+    def __init__(self, model_params=None, training_params=None,
+             use_mlflow: bool = True,
+             mlflow_experiment: str | None = None,
+             mlflow_tracking_uri: str | None = None,
+             registered_model_name: str | None = None,
+             tags: dict | None = None):
         self.model_params = model_params or MODEL_CONFIG
         self.training_params = training_params or TRAINING_CONFIG
         self.model = RandomForestRegressor(**self.model_params)
+
+        # ---- Opciones MLflow (igual que XGB) ----
+        self.use_mlflow = bool(use_mlflow and _MLFLOW_AVAILABLE)
+        self.mlflow_experiment = (
+            mlflow_experiment
+            or os.getenv("RF_EXPERIMENT_NAME")          # << permite experimento específico para RF
+            or os.getenv("EXPERIMENT_NAME")
+            or os.getenv("MLFLOW_EXPERIMENT_NAME", "steel-energy")
+        )
+        self.mlflow_tracking_uri = mlflow_tracking_uri or os.getenv("MLFLOW_TRACKING_URI")
+        self.registered_model_name = registered_model_name
+        self.tags = tags or {"model_type": "random_forest"}
+
+        if self.use_mlflow and self.mlflow_tracking_uri:
+            mlflow.set_tracking_uri(self.mlflow_tracking_uri)
+    def _mlflow_start(self, run_name: str | None = None):
+        if not self.use_mlflow:
+            return None
+        if mlflow.active_run() is not None:
+            return mlflow.active_run()
+        mlflow.set_experiment(self.mlflow_experiment)
+        return mlflow.start_run(run_name=run_name)
+
+    def _mlflow_log_params(self):
+        if not self.use_mlflow:
+            return
+        try:
+            mlflow.log_params({f"model__{k}": v for k, v in self.model.get_params().items()})
+        except Exception:
+            mlflow.log_params({f"model__{k}": v for k, v in (self.model_params or {}).items()})
+        if self.training_params:
+            mlflow.log_params({f"train__{k}": v for k, v in self.training_params.items()})
+
+    def _mlflow_log_metrics(self, metrics: dict):
+        if not self.use_mlflow:
+            return
+        mlflow.log_metrics({k: float(v) for k, v in metrics.items()})
 
     def train(self, X_train, y_train):
         print("[INFO] Training Random Forest model...")
@@ -107,66 +155,66 @@ class ModelTrainer:
         # 0) Configurar entorno de MLflow
         env_vars = load_env()
         mlflow.set_tracking_uri(env_vars["MLFLOW_TRACKING_URI"])
-        mlflow.set_experiment(env_vars["EXPERIMENT_NAME"])
-        self._ensure_output_dirs()
 
+        # Experimento específico para RF (p.ej., "steel-energy-rf")
+        base_exp = env_vars.get("EXPERIMENT_NAME", "steel-energy")
+        rf_exp = os.getenv("RF_EXPERIMENT_NAME", f"{base_exp}-rf")
+        mlflow.set_experiment(rf_exp)
+
+        self._ensure_output_dirs()
         print("[INFO] Starting Random Forest training pipeline...")
 
-        # TODO IMPORTANTE: todo lo de entrenamiento y logging va DENTRO del with
-        with mlflow.start_run():
-            # Registrar parámetros generales
-            mlflow.set_tags({"model_family": model_type, "stage": "dev"})
+        with mlflow.start_run(run_name="random_forest_run"):
+            # 1) Parámetros y tags
+            mlflow.set_tags({
+                "model_family": "random_forest",
+                "stage": os.getenv("RUN_STAGE", "dev")
+            })
             mlflow.log_params({f"model__{k}": v for k, v in self.model.get_params().items()})
             mlflow.log_params({f"train__{k}": v for k, v in self.training_params.items()})
             mlflow.log_params({
                 "n_train": int(getattr(X_train, "shape", [len(X_train)])[0]),
-                "n_test": int(getattr(X_test, "shape", [len(X_test)])[0])
+                "n_test": int(getattr(X_test, "shape", [len(X_test)])[0]),
             })
 
-            # 1) Entrenar
+            # 2) Entrenar
             self.train(X_train, y_train)
 
-            # 2) Evaluar
+            # 3) Evaluar
             metrics = self.evaluate(X_train, X_test, y_train, y_test)
-            # (asegura floats nativos)
             metrics = {k: float(v) for k, v in metrics.items()}
             mlflow.log_metrics(metrics)
 
-            # 3) Residuales (figura) + log
+            # 4) Residuales (figura) + log
             y_pred = self.model.predict(X_test)
             resid_fig = "reports/figures/residuals_rf.png"
             self._plot_residuals(y_test, y_pred, resid_fig)
             mlflow.log_artifact(resid_fig)
 
-            # 4) Guardar métricas a archivo + log
-            metrics_path = "reports/metrics.json"
-            
+            # 5) Guardar métricas a archivo (para DVC) + log
+            metrics_path = "reports/metrics_rf.json"
+            import os as _os
+            _os.makedirs("reports", exist_ok=True)   # <-- FALTA ESTO EN RF
             with open(metrics_path, "w") as f:
                 json.dump(metrics, f, indent=2)
             mlflow.log_artifact(metrics_path)
 
-           # 5) Guardar modelo .pkl con timestamp + log
+            # 6) Guardar modelo .pkl con timestamp + log
             saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
             mlflow.log_artifact(saved_path)
 
-            # 6) Subir el modelo en formato MLflow SIN usar el endpoint de logged-models
+            # 7) Subir el modelo en formato MLflow SIN usar logged-models (carpeta temporal)
             from tempfile import TemporaryDirectory
             from pathlib import Path
-            tmp_ok = False
             with TemporaryDirectory() as tmp:
                 local_dir = Path(tmp) / "rf_mlflow_model"
-                # guarda a disco en formato MLflow
                 mlflow.sklearn.save_model(self.model, path=str(local_dir))
-                # súbelo como artifacts normales bajo 'model/'
                 mlflow.log_artifacts(str(local_dir), artifact_path="model")
-                tmp_ok = True
-            print(f"[INFO] Model directory logged as artifacts under 'model/' (ok={tmp_ok})")
 
             print(f"[INFO] Random Forest model saved at: {saved_path}")
-            print(f"[INFO] Random Forest training pipeline complete.\n")
+            print("[INFO] Random Forest training pipeline complete.\n")
 
         return metrics
-
 
 class PipelineModelTrainer(ModelTrainer):
     """
