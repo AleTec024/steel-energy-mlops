@@ -289,3 +289,82 @@ def run_xgb_grid_search(
     grid.fit(X_train, y_train)
     return grid
 
+# =======================
+# Orquestador para DVC
+# =======================
+import os
+import json
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+from src.utils.env import load_env
+load_env()
+
+# Usamos los trainers que ya instrumentaste con MLflow
+from src.models.random_forest_model.model_trainer import ModelTrainer as RFTrainer
+from src.models.linear_regression_model.model_trainer import ModelTrainer as LINTrainer
+from src.models.xgboost_model.model_trainer import ModelTrainer as XGBTrainer
+
+# Rutas de métricas que DVC espera
+METRIC_PATHS = {
+    "random_forest": "reports/metrics_rf.json",
+    "linear_regression": "reports/metrics_linear.json",
+    "xgboost": "reports/metrics_xgb.json",
+}
+
+def _ensure_reports():
+    os.makedirs("reports/figures", exist_ok=True)
+
+def _load_features(path="data/interim/features.csv", target="usage_kwh"):
+    df = pd.read_csv(path)
+    df[target] = pd.to_numeric(df[target], errors="coerce")
+    num_df = df.select_dtypes(include=["number"]).dropna(subset=[target]).copy()
+    y = num_df[target]
+    X = num_df.drop(columns=[target])
+    if X.shape[1] == 0:
+        raise ValueError("No quedaron columnas numéricas en X. Revisa el dataset/intermediate.")
+    return train_test_split(X, y, test_size=0.2, random_state=42)
+
+def _run_one(kind, X_train, X_test, y_train, y_test):
+    _ensure_reports()
+
+    if kind == "random_forest":
+        trainer = RFTrainer()
+    elif kind == "linear_regression":
+        trainer = LINTrainer()
+    elif kind == "xgboost":
+        trainer = XGBTrainer()
+    else:
+        raise ValueError(f"Modelo no soportado: {kind}")
+
+    print(f"[PIPELINE] Entrenando {kind}…")
+    metrics = trainer.run(X_train, X_test, y_train, y_test, model_type=kind)
+
+    # Fallback: si por cualquier razón el trainer no escribió su JSON, lo escribimos aquí
+    metrics_path = METRIC_PATHS[kind]
+    if not os.path.exists(metrics_path):
+        with open(metrics_path, "w") as f:
+            json.dump({k: float(v) for k, v in metrics.items()}, f, indent=2)
+        print(f"[PIPELINE] Métricas {kind} guardadas en {metrics_path} (fallback).")
+
+def main(params_path="params.yaml"):
+    # Lee params.yaml si existe; por defecto corre los 3
+    try:
+        import yaml
+        with open(params_path, "r") as f:
+            P = yaml.safe_load(f) or {}
+        model_types = P.get("train", {}).get("model_types") or \
+                      ["random_forest", "linear_regression", "xgboost"]
+    except Exception:
+        model_types = ["random_forest", "linear_regression", "xgboost"]
+
+    X_train, X_test, y_train, y_test = _load_features()
+    for kind in model_types:
+        _run_one(kind, X_train, X_test, y_train, y_test)
+
+if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--params", default="params.yaml")
+    args = ap.parse_args()
+    main(args.params)
