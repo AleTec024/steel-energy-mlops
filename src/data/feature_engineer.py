@@ -15,6 +15,7 @@ class DateFeatureTransformer(BaseEstimator, TransformerMixin):
         datetime_col: str = "date",
         drop_original: bool = True,
         add_cyclical: bool = True,
+        generate_features: bool = True,
         drop_na: bool = False,
         clip_outliers: bool = False,
         lower_quantile: float = 0.01,
@@ -23,6 +24,7 @@ class DateFeatureTransformer(BaseEstimator, TransformerMixin):
         self.datetime_col = datetime_col
         self.drop_original = drop_original
         self.add_cyclical = add_cyclical
+        self.generate_features = generate_features
         self.drop_na = drop_na
         self.clip_outliers = clip_outliers
         self.lower_quantile = lower_quantile
@@ -36,6 +38,13 @@ class DateFeatureTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X: pd.DataFrame):
         self._validate_column(X)
         df = X.copy()
+
+        if not self.generate_features:
+            if self.drop_original:
+                df = df.drop(columns=[self.datetime_col], errors="ignore")
+            self.feature_names_ = []
+            return df
+
         dt = pd.to_datetime(df[self.datetime_col], errors="coerce")
 
         features = pd.DataFrame(
@@ -54,6 +63,12 @@ class DateFeatureTransformer(BaseEstimator, TransformerMixin):
             features[f"{self.datetime_col}_cos_hour"] = np.cos(2 * np.pi * hour / 24)
 
         if self.drop_na:
+            missing_mask = features.isna().any(axis=1)
+            if missing_mask.any():
+                raise ValueError(
+                    "[ERROR] DateFeatureTransformer drop_na=True detecto valores faltantes despues de convertir la fecha. "
+                    "Elimina estas filas antes de aplicar el transformer o usa drop_na=False."
+                )
             processed_features = features.astype(np.float32)
         else:
             fill_values = {
@@ -181,11 +196,19 @@ class FeatureEngineer:
     for model training.
     """
 
-    def __init__(self, features: list, target: str, test_size: float = 0.2, random_state: int = 42):
+    def __init__(
+        self,
+        features: list,
+        target: str,
+        test_size: float = 0.2,
+        random_state: int = 42,
+        drop_columns: Optional[Iterable[str]] = None,
+    ):
         self.features = features
         self.target = target
         self.test_size = test_size
         self.random_state = random_state
+        self.drop_columns = list(drop_columns or [])
 
     def select_features(self, df: pd.DataFrame):
         """
@@ -238,7 +261,14 @@ class FeatureEngineer:
         - Splits data
         - Saves combined features dataset (for DVC)
         """
-        X, y = self.select_features(df)
+        working_df = df.copy()
+        if self.drop_columns:
+            cols_to_drop = [c for c in self.drop_columns if c in working_df.columns]
+            if self.target in cols_to_drop:
+                raise ValueError(f"[ERROR] Cannot drop target column '{self.target}'.")
+            working_df = working_df.drop(columns=cols_to_drop, errors="ignore")
+
+        X, y = self.select_features(working_df)
 
         # Save all features (for DVC versioning)
         self.save_features(X, y)

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
+from inspect import signature
 
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
 import xgboost as xgb
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LinearRegression
@@ -21,22 +21,6 @@ from src.data.feature_engineer import (
     OutlierClipper,
 )
 from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
-
-
-
-class ColumnDropper(BaseEstimator, TransformerMixin):
-    """Transformer sencillo para eliminar columnas por nombre."""
-
-    def __init__(self, columns):
-        self.columns = list(columns)
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        if isinstance(X, pd.DataFrame):
-            return X.drop(columns=self.columns, errors="ignore")
-        raise TypeError("ColumnDropper espera un DataFrame de pandas")
 
 
 DEFAULT_SCORING = {
@@ -62,13 +46,25 @@ def build_feature_engineering_pipeline(
                     datetime_col="date",
                     drop_original=True,
                     add_cyclical=True,
+                    generate_features=True,
                     drop_na=drop_na,
                 ),
             )
         )
         clip_columns = config.numeric_base_features + config.date_feature_names
     else:
-        steps.append(("drop_date", ColumnDropper(columns=["date"])))
+        steps.append(
+            (
+                "drop_date",
+                DateFeatureTransformer(
+                    datetime_col="date",
+                    drop_original=True,
+                    add_cyclical=False,
+                    generate_features=False,
+                    drop_na=False,
+                ),
+            )
+        )
         clip_columns = config.numeric_base_features
 
     steps.append(
@@ -106,10 +102,16 @@ def build_preprocessor(
         numeric_features += config.date_feature_names
     numeric_features += config.interaction_feature_names
 
+    encoder_kwargs = {"handle_unknown": "ignore"}
+    if "sparse_output" in signature(OneHotEncoder).parameters:
+        encoder_kwargs["sparse_output"] = False
+    else:
+        encoder_kwargs["sparse"] = False
+
     categorical_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", OneHotEncoder(handle_unknown="ignore", sparse=False)),
+            ("encoder", OneHotEncoder(**encoder_kwargs)),
         ]
     )
 
