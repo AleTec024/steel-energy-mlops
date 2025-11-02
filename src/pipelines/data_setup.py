@@ -101,7 +101,6 @@ def load_clean_dataframe(data_path: Optional[Path] = None) -> pd.DataFrame:
     loader = DataLoader(str(path))
     df = loader.load_data()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    #df = df.dropna(subset=["date"]).reset_index(drop=True)
     return df
 
 

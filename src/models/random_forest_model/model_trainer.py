@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
 from .config import MODEL_CONFIG, TRAINING_CONFIG
 
 # MLflow + utilidades
@@ -14,6 +15,8 @@ import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
 from src.utils.env import load_env  # para cargar el .env
+from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
+from src.pipelines.experiment_pipelines import build_feature_engineering_pipeline, build_preprocessor
 
 
 class ModelTrainer:
@@ -163,3 +166,43 @@ class ModelTrainer:
             print(f"[INFO] Random Forest training pipeline complete.\n")
 
         return metrics
+
+
+class PipelineModelTrainer(ModelTrainer):
+    """
+    Versión v2 del entrenador que encapsula la ingeniería de atributos dentro de
+    un Pipeline de scikit-learn.
+    """
+
+    def __init__(
+        self,
+        model_params=None,
+        training_params=None,
+        *,
+        feature_config: FeatureConfig | None = None,
+        drop_na: bool = False,
+        use_date_features: bool = True,
+    ):
+        super().__init__(model_params=model_params, training_params=training_params)
+        self.feature_config = feature_config or DEFAULT_FEATURE_CONFIG
+        self.drop_na = drop_na
+        self.use_date_features = use_date_features
+
+        feature_engineering = build_feature_engineering_pipeline(
+            self.feature_config,
+            drop_na=self.drop_na,
+            use_date_features=self.use_date_features,
+        )
+        preprocessor = build_preprocessor(
+            self.feature_config,
+            use_date_features=self.use_date_features,
+        )
+        estimator = RandomForestRegressor(**self.model_params)
+
+        self.model = Pipeline(
+            steps=[
+                ("feature_engineering", feature_engineering),
+                ("preprocessor", preprocessor),
+                ("regressor", estimator),
+            ]
+        )
