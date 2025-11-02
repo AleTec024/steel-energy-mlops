@@ -1,6 +1,7 @@
-/steel_energy_cleaned.csv
-/steel_energy_cleaned.csv
-/steel_energy_cleaned_v2.csv
+# Ignore all cleaned CSV files, keep DVC metadata
+steel_energy_cleaned.csv
+steel_energy_cleaned_v2.csv
+!steel_energy_cleaned_v2.csv.dvc
 /steel_energy_cleaned.csv
 /steel_energy_cleaned_v2.csv
 /steel_energy_cleaned.csv

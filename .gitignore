@@ -1,3 +1,11 @@
+# Ignore entire models folder but allow DVC metadata
+models/*
+!models/
+!models/**/*.dvc
+!models/**/*.yaml
+!models/**/*.json
+
+
 # Data
 /data/*
 !/data/.gitignore
@@ -199,3 +207,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+# Reports, logs y outputs
+reports/
+/reports

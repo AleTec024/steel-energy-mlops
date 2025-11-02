@@ -67,40 +67,102 @@ stages:
       size: 1676057
     - path: src/models/linear_regression_model/model_trainer.py
       hash: md5
-      md5: a1cf789e040c2faad5c31d614d4dabd6
-      size: 2285
+      md5: 02b319ec54dd4cf0103c2d694f8723ae
+      size: 3541
     - path: src/models/random_forest_model/model_trainer.py
       hash: md5
-      md5: 12adab63e510a9accf51335b9cc932a3
-      size: 2294
+      md5: 6f1bab95b3410fe460b36f9dfc6afb34
+      size: 3536
     - path: src/models/xgboost_model/model_trainer.py
       hash: md5
-      md5: 4960c3a7bea1b86964cec02f71ed435f
-      size: 2757
+      md5: 581bc698e222b40e05b6bd9bf5bd1e36
+      size: 3803
     params:
       params.yaml:
         train.cv_folds: 5
-        train.linear_regression.fit_intercept: true
-        train.linear_regression.n_jobs:
-        train.model_type: random_forest
-        train.random_forest.max_depth:
-        train.random_forest.max_features:
-        train.random_forest.min_samples_leaf: 1
-        train.random_forest.min_samples_split: 2
-        train.random_forest.n_estimators: 300
-        train.random_forest.n_jobs: -1
-        train.random_forest.random_state: 42
-        train.xgboost.colsample_bytree: 0.8
-        train.xgboost.eval_metric: rmse
-        train.xgboost.learning_rate: 0.1
-        train.xgboost.max_depth: 6
-        train.xgboost.n_estimators: 200
-        train.xgboost.n_jobs: -1
-        train.xgboost.random_state: 42
-        train.xgboost.subsample: 0.8
+        train.linear_regression:
+          fit_intercept: true
+          n_jobs:
+        train.model_type: xgboost
+        train.random_forest:
+          n_estimators: 300
+          max_depth:
+          min_samples_split: 2
+          min_samples_leaf: 1
+          max_features:
+          random_state: 42
+          n_jobs: -1
+        train.xgboost:
+          n_estimators: 200
+          learning_rate: 0.1
+          max_depth: 6
+          subsample: 0.8
+          colsample_bytree: 0.8
+          eval_metric: rmse
+          random_state: 42
+          n_jobs: -1
     outs:
-    - path: models/current/
+    - path: models/xgboost/artifacts
       hash: md5
-      md5: 23783f7237325aae7591cd747c689a57.dir
-      size: 212346161
+      md5: 865033dbb0c098a8d2d115c7d2ff98e5.dir
+      size: 852614
       nfiles: 1
+  train_suite:
+    cmd: python -m src.pipelines.experiment_pipelines --params params.yaml
+    deps:
+    - path: data/interim/features.csv
+      hash: md5
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
+    - path: params.yaml
+      hash: md5
+      md5: 297d9884a5d214c26308f61137fc5846
+      size: 1242
+    - path: src/pipelines/data_setup.py
+      hash: md5
+      md5: d9e9f8de086d784be94a4a993325dfea
+      size: 4553
+    - path: src/pipelines/experiment_pipelines.py
+      hash: md5
+      md5: a645199d51dcc4ba2fa7776414b9df16
+      size: 15961
+    - path: src/utils/env.py
+      hash: md5
+      md5: c0b7598602228669d1c2c1863dba623f
+      size: 946
+    params:
+      params.yaml:
+        mlflow.model_name: steel-energy/suite
+        mlflow.register_model: false
+        train.cv_folds: 5
+        train.linear_regression:
+          fit_intercept: true
+          n_jobs:
+        train.model_type: xgboost
+        train.model_types:
+        - xgboost
+        - random_forest
+        - linear_regression
+        train.random_forest:
+          n_estimators: 300
+          max_depth:
+          min_samples_split: 2
+          min_samples_leaf: 1
+          max_features:
+          random_state: 42
+          n_jobs: -1
+        train.xgboost:
+          n_estimators: 200
+          learning_rate: 0.1
+          max_depth: 6
+          subsample: 0.8
+          colsample_bytree: 0.8
+          eval_metric: rmse
+          random_state: 42
+          n_jobs: -1
+    outs:
+    - path: reports
+      hash: md5
+      md5: 9f8117cf3e966cbc3d4a04e084319234.dir
+      size: 1572
+      nfiles: 7

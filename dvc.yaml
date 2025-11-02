@@ -28,25 +28,32 @@ stages:
     params:
       - train.model_type
       - train.cv_folds
-      # XGBoost params
-      - train.xgboost.n_estimators
-      - train.xgboost.learning_rate
-      - train.xgboost.max_depth
-      - train.xgboost.subsample
-      - train.xgboost.colsample_bytree
-      - train.xgboost.eval_metric
-      - train.xgboost.random_state
-      - train.xgboost.n_jobs
-      # Random Forest params
-      - train.random_forest.n_estimators
-      - train.random_forest.max_depth
-      - train.random_forest.min_samples_split
-      - train.random_forest.min_samples_leaf
-      - train.random_forest.max_features
-      - train.random_forest.random_state
-      - train.random_forest.n_jobs
-      # Linear Regression params
-      - train.linear_regression.fit_intercept
-      - train.linear_regression.n_jobs
+      - train.xgboost
+      - train.random_forest
+      - train.linear_regression
+      # WAATTTTTCHHHH UOTTTTTT!!,,, enable the model output to be used
     outs:
-      - models/current/
+      - models/xgboost/artifacts
+      #- models/random_forest/artifacts
+      #- models/linear_regression/artifacts
+
+        # NUEVA etapa: orquestador con MLflow (varios modelos)
+  train_suite:
+    cmd: python -m src.pipelines.experiment_pipelines --params params.yaml
+    deps:
+      - src/pipelines/experiment_pipelines.py
+      - src/pipelines/data_setup.py
+      - src/utils/env.py
+      - params.yaml
+      - data/interim/features.csv
+    outs:
+      - reports
+    params:
+      - train.model_types
+      - train.model_type
+      - train.cv_folds
+      - train.xgboost
+      - train.random_forest
+      - train.linear_regression
+      - mlflow.register_model
+      - mlflow.model_name
