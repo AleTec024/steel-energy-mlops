@@ -328,11 +328,15 @@ def _load_features(path="data/interim/features.csv", target="usage_kwh"):
 def _run_one(kind, X_train, X_test, y_train, y_test):
     _ensure_reports()
 
+    # Lazy imports para evitar ciclos
     if kind == "random_forest":
+        from src.models.random_forest_model.model_trainer import ModelTrainer as RFTrainer
         trainer = RFTrainer()
     elif kind == "linear_regression":
+        from src.models.linear_regression_model.model_trainer import ModelTrainer as LINTrainer
         trainer = LINTrainer()
     elif kind == "xgboost":
+        from src.models.xgboost_model.model_trainer import ModelTrainer as XGBTrainer
         trainer = XGBTrainer()
     else:
         raise ValueError(f"Modelo no soportado: {kind}")
@@ -340,12 +344,13 @@ def _run_one(kind, X_train, X_test, y_train, y_test):
     print(f"[PIPELINE] Entrenando {kind}…")
     metrics = trainer.run(X_train, X_test, y_train, y_test, model_type=kind)
 
-    # Fallback: si por cualquier razón el trainer no escribió su JSON, lo escribimos aquí
     metrics_path = METRIC_PATHS[kind]
     if not os.path.exists(metrics_path):
+        import json
         with open(metrics_path, "w") as f:
             json.dump({k: float(v) for k, v in metrics.items()}, f, indent=2)
         print(f"[PIPELINE] Métricas {kind} guardadas en {metrics_path} (fallback).")
+
 
 def main(params_path="params.yaml"):
     # Lee params.yaml si existe; por defecto corre los 3

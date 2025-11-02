@@ -13,7 +13,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from src.utils.env import load_env  # para cargar el .env
 from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
-from src.pipelines.experiment_pipelines import build_feature_engineering_pipeline, build_preprocessor
 
 import os
 os.environ["MLFLOW_ENABLE_LOGGED_MODELS"] = "false"
