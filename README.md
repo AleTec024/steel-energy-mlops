@@ -66,3 +66,45 @@ Antes de correr cualquier notebook:
    ```bash
    pip install -r requirements.txt
    dvc pull
+
+
+## 🧭 Descripción General  
+
+Este proyecto sigue las mejores prácticas de **Machine Learning Operations (MLOps)** para garantizar la **reproducibilidad total de los experimentos**.  
+Incluye control de versiones de código, datos, modelos y experimentos, con una integración completa entre DVC y MLflow.
+
+🔹 **DVC** → Versiona y rastrea datasets y modelos.  
+🔹 **MLflow** → Registra experimentos, métricas y parámetros.  
+🔹 **Git LFS** → Maneja artefactos grandes (.pkl, .h5).  
+🔹 **Pipeline modular** → Preprocesamiento, entrenamiento, evaluación y registro automático de resultados.
+
+Cualquier persona puede **replicar los resultados** desde cero siguiendo este README.
+
+
+
+---
+
+## ⚙️ Requisitos e Instalación  
+
+### 🧰 Dependencias principales  
+- Python ≥ 3.10  
+- MLflow ≥ 2.x  
+- DVC ≥ 3.x  
+- scikit-learn, pandas, numpy, joblib  
+
+### 🚀 Instalación rápida  
+
+```bash
+# Crear entorno virtual
+python -m venv .venv
+source .venv/bin/activate   # (Windows: .venv\Scripts\activate)
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Instalar DVC y Git LFS
+pip install dvc[all] mlflow
+git lfs install
+
+
+
