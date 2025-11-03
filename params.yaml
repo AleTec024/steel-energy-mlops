@@ -25,7 +25,7 @@ train:
     fit_intercept: true
     n_jobs: null
   model_type: xgboost
-  model_types: model_types: [random_forest, linear_regression, xgboost]
+  model_types: [random_forest, linear_regression, xgboost]
   random_forest:
     max_depth: null
     max_features: null
