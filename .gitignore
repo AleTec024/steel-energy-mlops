@@ -216,3 +216,10 @@ models/**/artifacts/*
 *.h5
 mlruns/
 models/**/artifacts/*
+
+# Ignorar artefactos y modelos
+mlruns/
+models/**/artifacts/*
+*.pkl
+*.h5
+
