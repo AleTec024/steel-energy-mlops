@@ -210,3 +210,7 @@ cython_debug/
 # Reports, logs y outputs
 reports/
 /reports
+mlruns/
+models/**/artifacts/*
+*.pkl
+*.h5
