@@ -108,3 +108,39 @@ git lfs install
 
 
 
+### ⚡️ Configuración Inicial
+#### 1️⃣ Clonar repo
+```bash
+git clone https://github.com/AleTec024/steel-energy-mlops.git
+cd steel-energy-mlops
+git lfs pull
+#### 2️⃣ Crear el archivo .env
+```bash
+cp .env.example .env
+# Configura las variables necesarias en el nuevo archivo .env:
+MLFLOW_TRACKING_URI=<tu_uri_local_o_remoto>
+BACKEND_URI=<postgresql_uri_si_aplica>
+ARTIFACTS_URI=<ruta_o_bucket_para_artifacts>
+
+#### 3️⃣ Recuperar datasets y modelos versionados
+```bash
+dvc pull
+
+#### 4️⃣ Iniciar el servidor de MLflow
+```bash
+mlflow ui --host 0.0.0.0 --port 5001
+
+### 🧠 Ejecución Completa del Pipeline
+#### ▶️ 1. Ejecutar todo el pipeline con DVC
+```bash
+dvc repro
+
+Esto realizará las siguientes tareas:
+
+Limpia y transforma los datos (data/clean/)
+
+Entrena los modelos (Linear Regression, Random Forest, XGBoost)
+
+Evalúa resultados
+
+Registra métricas y artefactos en MLflow
