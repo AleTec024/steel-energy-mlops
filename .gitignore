@@ -223,3 +223,10 @@ models/**/artifacts/*
 *.pkl
 *.h5
 
+
+# Ignorar artefactos de modelos/MLflow
+mlruns/
+models/**/artifacts/
+*.pkl
+*.h5
+*.joblib
