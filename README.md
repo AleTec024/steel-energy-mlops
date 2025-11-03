@@ -57,90 +57,170 @@ ML pipeline for predicting steel industry energy consumption
     └── plots.py                <- Code to create visualizations
 ```
 
---------
+## 🧭 Descripción General
 
-### 🚀 Instrucciones para ejecutar notebooks
-Antes de correr cualquier notebook:
+Este proyecto implementa buenas prácticas de **MLOps** para garantizar que cualquier persona pueda **replicar los resultados**:
+- **DVC**: versiona datasets y modelos.
+- **MLflow**: registra parámetros, métricas y artefactos de experimentos.
+- **Git LFS**: almacena binarios grandes (.pkl, .h5) cuando corresponde.
+- **Pipeline**: limpieza de datos → entrenamiento (Linear, RF, XGBoost) → evaluación → logging.
 
-1. Asegúrate de tener configurado DVC:
-   ```bash
-   pip install -r requirements.txt
-   dvc pull
-
-
-## 🧭 Descripción General  
-
-Este proyecto sigue las mejores prácticas de **Machine Learning Operations (MLOps)** para garantizar la **reproducibilidad total de los experimentos**.  
-Incluye control de versiones de código, datos, modelos y experimentos, con una integración completa entre DVC y MLflow.
-
-🔹 **DVC** → Versiona y rastrea datasets y modelos.  
-🔹 **MLflow** → Registra experimentos, métricas y parámetros.  
-🔹 **Git LFS** → Maneja artefactos grandes (.pkl, .h5).  
-🔹 **Pipeline modular** → Preprocesamiento, entrenamiento, evaluación y registro automático de resultados.
-
-Cualquier persona puede **replicar los resultados** desde cero siguiendo este README.
-
+---
 
 
 ---
 
-## ⚙️ Requisitos e Instalación  
+## ✅ Requisitos
 
-### 🧰 Dependencias principales  
-- Python ≥ 3.10  
-- MLflow ≥ 2.x  
-- DVC ≥ 3.x  
-- scikit-learn, pandas, numpy, joblib  
+- **Python** ≥ 3.10  
+- **pip**, **git**, **git-lfs**  
+- **DVC** ≥ 3.x  
+- **MLflow** ≥ 2.x
 
-### 🚀 Instalación rápida  
+---
+
+## 🚀 Instalación Rápida
 
 ```bash
-# Crear entorno virtual
+# 1) Crear y activar entorno virtual
 python -m venv .venv
-source .venv/bin/activate   # (Windows: .venv\Scripts\activate)
+# macOS/Linux
+source .venv/bin/activate
+# Windows (PowerShell)
+# .venv\Scripts\Activate.ps1
 
-# Instalar dependencias
+# 2) Instalar dependencias
 pip install -r requirements.txt
 
-# Instalar DVC y Git LFS
+# 3) Instalar herramientas adicionales
 pip install dvc[all] mlflow
 git lfs install
+```
 
+---
 
+## ⚡️ Configuración Inicial
 
-### ⚡️ Configuración Inicial
-#### 1️⃣ Clonar repo
+### 1) Clonar el repositorio
+
 ```bash
 git clone https://github.com/AleTec024/steel-energy-mlops.git
 cd steel-energy-mlops
 git lfs pull
-#### 2️⃣ Crear el archivo .env
+```
+
+### 2) Crear y editar `.env`
+
 ```bash
 cp .env.example .env
-# Configura las variables necesarias en el nuevo archivo .env:
-MLFLOW_TRACKING_URI=<tu_uri_local_o_remoto>
-BACKEND_URI=<postgresql_uri_si_aplica>
-ARTIFACTS_URI=<ruta_o_bucket_para_artifacts>
+```
 
-#### 3️⃣ Recuperar datasets y modelos versionados
+Configura estos valores en `.env`:
+
+```env
+# MLflow
+MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+
+# (Opcional) MLflow Server con Postgres + artefactos remotos
+BACKEND_URI=postgresql://USER:PASS@HOST:5432/DBNAME
+ARTIFACTS_URI=file://$(pwd)/mlruns_artifacts   # o s3://tu-bucket/prefix
+```
+
+### 3) Recuperar datasets y modelos versionados (DVC)
+
 ```bash
 dvc pull
+```
 
-#### 4️⃣ Iniciar el servidor de MLflow
-```bash
-mlflow ui --host 0.0.0.0 --port 5001
+---
 
-### 🧠 Ejecución Completa del Pipeline
-#### ▶️ 1. Ejecutar todo el pipeline con DVC
+## 🧠 Ejecución del Pipeline
+
+### Opción A — Ejecutar TODO con DVC
+
 ```bash
 dvc repro
+```
 
-Esto realizará las siguientes tareas:
+Esto ejecuta las etapas declaradas en `dvc.yaml`:
+- Limpieza / transformación de datos → `data/clean/`
+- Entrenamiento de modelos (Linear, RF, XGB)
+- Evaluación y registro de métricas/artefactos en MLflow
 
-Limpia y transforma los datos (data/clean/)
+### Opción B — Entrenar por modelo
 
-Entrena los modelos (Linear Regression, Random Forest, XGBoost)
+```bash
+python src/models/linear_regression_model/train.py
+python src/models/random_forest_model/train.py
+python src/models/xgboost_model/train.py
+```
 
-Evalúa resultados
+---
 
-Registra métricas y artefactos en MLflow
+## 📈 Seguimiento de Experimentos (MLflow)
+
+### UI local (rápida)
+
+```bash
+mlflow ui --host 0.0.0.0 --port 5001
+```
+
+Navega a: http://localhost:5001
+
+### Servidor MLflow (Postgres + Artefactos remotos)
+
+```bash
+# Cargar variables .env en la shell actual
+export $(grep -v '^#' .env | xargs)
+
+mlflow server \
+  --backend-store-uri "$BACKEND_URI" \
+  --artifacts-destination "$ARTIFACTS_URI" \
+  --host 0.0.0.0 --port 5001
+```
+
+> **Nota:** si MLflow te pide migrar esquema:  
+> 1) haz backup de la base y 2) ejecuta:
+>
+> ```bash
+> mlflow db upgrade "$BACKEND_URI"
+> ```
+
+---
+
+## 🔁 Reproducibilidad
+
+Pasos para replicar resultados **de principio a fin**:
+
+```bash
+git clone https://github.com/AleTec024/steel-energy-mlops.git
+cd steel-energy-mlops
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install dvc[all] mlflow
+git lfs install
+git lfs pull
+cp .env.example .env
+# (editar .env si usarás servidor MLflow/artefactos remotos)
+dvc pull
+dvc repro
+mlflow ui --host 0.0.0.0 --port 5001
+```
+
+✅ Los resultados (métricas/artefactos) deben coincidir con lo reportado en MLflow y DVC.
+
+---
+
+## 🧰 Herramientas y Versiones
+
+| Herramienta     | Versión recomendada |
+|-----------------|---------------------|
+| Python          | 3.10+               |
+| DVC             | 3.x                 |
+| MLflow          | 2.x                 |
+| scikit-learn    | 1.5+                |
+| pandas          | 2.x                 |
+| numpy           | 1.26+               |
+
+---
