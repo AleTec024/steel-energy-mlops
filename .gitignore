@@ -214,3 +214,5 @@ mlruns/
 models/**/artifacts/*
 *.pkl
 *.h5
+mlruns/
+models/**/artifacts/*
