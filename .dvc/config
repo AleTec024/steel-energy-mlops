@@ -1,5 +1,6 @@
 [core]
     remote = s3remote
+    autostage = true
 [cache]
     type = copy
 ['remote "s3remote"']
