@@ -220,3 +220,28 @@ client.transition_model_version_stage(
     archive_existing_versions=True
 )
 ```
+## Modelo en un contenedor (Docker)
+
+### Desde la raíz del repo (steel-energy-mlops):
+
+```bash
+# construir la imagen de la API
+docker build -t steel-energy-api:latest -f api/Dockerfile .
+```
+
+
+Si tu MLflow sigue corriendo en tu máquina en http://127.0.0.1:5001,
+desde Docker necesitas apuntar a host.docker.internal (en macOS/Windows):
+
+El entorno de entrenamiento usa requirements.txt de la raíz (fijado).
+
+El servicio de inferencia (API) usa api/requirements.txt (más ligero, solo dependencias necesarias para servir el modelo).
+
+### El contenedor se construye con:
+
+```bash
+docker run --rm \
+  -p 8000:8000 \
+  -e MLFLOW_TRACKING_URI=http://host.docker.internal:5001 \
+  steel-energy-api:latest
+```
