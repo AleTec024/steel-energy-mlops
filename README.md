@@ -67,9 +67,6 @@ Este proyecto implementa buenas prácticas de **MLOps** para garantizar que cual
 
 ---
 
-
----
-
 ## ✅ Requisitos
 
 - **Python** ≥ 3.10  
@@ -82,17 +79,9 @@ Este proyecto implementa buenas prácticas de **MLOps** para garantizar que cual
 ## 🚀 Instalación Rápida
 
 ```bash
-# 1) Crear y activar entorno virtual
 python -m venv .venv
-# macOS/Linux
 source .venv/bin/activate
-# Windows (PowerShell)
-# .venv\Scripts\Activate.ps1
-
-# 2) Instalar dependencias
 pip install -r requirements.txt
-
-# 3) Instalar herramientas adicionales
 pip install dvc[all] mlflow
 git lfs install
 ```
@@ -115,17 +104,6 @@ git lfs pull
 cp .env.example .env
 ```
 
-Configura estos valores en `.env`:
-
-```env
-# MLflow
-MLFLOW_TRACKING_URI=http://127.0.0.1:5001
-
-# (Opcional) MLflow Server con Postgres + artefactos remotos
-BACKEND_URI=postgresql://USER:PASS@HOST:5432/DBNAME
-ARTIFACTS_URI=file://$(pwd)/mlruns_artifacts   # o s3://tu-bucket/prefix
-```
-
 ### 3) Recuperar datasets y modelos versionados (DVC)
 
 ```bash
@@ -136,61 +114,21 @@ dvc pull
 
 ## 🧠 Ejecución del Pipeline
 
-### Opción A — Ejecutar TODO con DVC
-
 ```bash
 dvc repro
-```
-
-Esto ejecuta las etapas declaradas en `dvc.yaml`:
-- Limpieza / transformación de datos → `data/clean/`
-- Entrenamiento de modelos (Linear, RF, XGB)
-- Evaluación y registro de métricas/artefactos en MLflow
-
-### Opción B — Entrenar por modelo
-
-```bash
-python src/models/linear_regression_model/train.py
-python src/models/random_forest_model/train.py
-python src/models/xgboost_model/train.py
 ```
 
 ---
 
 ## 📈 Seguimiento de Experimentos (MLflow)
 
-### UI local (rápida)
-
 ```bash
 mlflow ui --host 0.0.0.0 --port 5001
 ```
 
-Navega a: http://localhost:5001
-
-### Servidor MLflow (Postgres + Artefactos remotos)
-
-```bash
-# Cargar variables .env en la shell actual
-export $(grep -v '^#' .env | xargs)
-
-mlflow server \
-  --backend-store-uri "$BACKEND_URI" \
-  --artifacts-destination "$ARTIFACTS_URI" \
-  --host 0.0.0.0 --port 5001
-```
-
-> **Nota:** si MLflow te pide migrar esquema:  
-> 1) haz backup de la base y 2) ejecuta:
->
-> ```bash
-> mlflow db upgrade "$BACKEND_URI"
-> ```
-
 ---
 
 ## 🔁 Reproducibilidad
-
-Pasos para replicar resultados **de principio a fin**:
 
 ```bash
 git clone https://github.com/AleTec024/steel-energy-mlops.git
@@ -202,25 +140,83 @@ pip install dvc[all] mlflow
 git lfs install
 git lfs pull
 cp .env.example .env
-# (editar .env si usarás servidor MLflow/artefactos remotos)
 dvc pull
 dvc repro
 mlflow ui --host 0.0.0.0 --port 5001
 ```
 
-✅ Los resultados (métricas/artefactos) deben coincidir con lo reportado en MLflow y DVC.
+---
+
+## Levantar la API
+
+```bash
+cd steel-energy-mlops
+source .venv/bin/activate
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+cd api
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 ---
 
-## 🧰 Herramientas y Versiones
+## ## 3. Ruta y versión del artefacto del modelo (MLflow Model Registry)
 
-| Herramienta     | Versión recomendada |
-|-----------------|---------------------|
-| Python          | 3.10+               |
-| DVC             | 3.x                 |
-| MLflow          | 2.x                 |
-| scikit-learn    | 1.5+                |
-| pandas          | 2.x                 |
-| numpy           | 1.26+               |
+Este proyecto utiliza **MLflow Model Registry** para gestionar y versionar los modelos entrenados.  
+La API consume directamente la versión marcada como **`Production`**, lo que permite actualizar el modelo sin modificar la API.
+
+### Modelos registrados
+
+| Alias | Nombre MLflow | URI | Stage |
+|------|----------------|------|--------|
+| rf | steel_energy_random_forest | models:/steel_energy_random_forest/Production | Production |
+| linear | steel_energy_linear | models:/steel_energy_linear/Production | Production |
+| xgb | steel_energy_xgboost | models:/steel_energy_xgboost/Production | Production |
 
 ---
+
+## ## 4. Schema de entrada y salida del endpoint `/predict`
+
+### Request — POST /predict
+
+```json
+{
+  "values": [0.12, 34.5, 1.0, 540.0, 1]
+}
+```
+
+### Response — PredictResponse
+
+```json
+{
+  "prediction": 1234.56,
+  "model_name": "rf",
+  "model_source": "mlflow",
+  "model_ref": "models:/steel_energy_random_forest/Production",
+  "model_version": "1"
+}
+```
+
+---
+
+## ## 5. Actualizar el modelo en producción (sin modificar la API)
+
+### Paso 1 — Entrenar una nueva versión
+
+```bash
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+dvc repro -f train_suite
+```
+
+### Paso 2 — Promover a Production
+
+```python
+from mlflow.tracking import MlflowClient
+
+client = MlflowClient()
+client.transition_model_version_stage(
+    name="steel_energy_random_forest",
+    version=3,
+    stage="Production",
+    archive_existing_versions=True
+)
+```
