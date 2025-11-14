@@ -159,7 +159,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-## ## 3. Ruta y versión del artefacto del modelo (MLflow Model Registry)
+## Ruta y versión del artefacto del modelo (MLflow Model Registry)
 
 Este proyecto utiliza **MLflow Model Registry** para gestionar y versionar los modelos entrenados.  
 La API consume directamente la versión marcada como **`Production`**, lo que permite actualizar el modelo sin modificar la API.
@@ -174,7 +174,7 @@ La API consume directamente la versión marcada como **`Production`**, lo que pe
 
 ---
 
-## ## 4. Schema de entrada y salida del endpoint `/predict`
+## Schema de entrada y salida del endpoint `/predict`
 
 ### Request — POST /predict
 
@@ -198,7 +198,7 @@ La API consume directamente la versión marcada como **`Production`**, lo que pe
 
 ---
 
-## ## 5. Actualizar el modelo en producción (sin modificar la API)
+## Actualizar el modelo en producción (sin modificar la API)
 
 ### Paso 1 — Entrenar una nueva versión
 
