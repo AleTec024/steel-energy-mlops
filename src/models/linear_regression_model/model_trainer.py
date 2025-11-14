@@ -234,10 +234,39 @@ class ModelTrainer:
             # 5) Guardar modelo (.pkl) y loguearlo (+ versión MLflow temporal)
             saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
             self._mlflow_log_artifacts_and_model(saved_path, model_type=model_type)
+             # 6) Registrar modelo en MLflow Model Registry y promover a Production
+            try:
+                
+                from mlflow.tracking import MlflowClient
+
+                registered_model_name = "steel_energy_linear"
+
+                # Log modelo sklearn
+                mlflow.sklearn.log_model(sk_model=self.model, artifact_path="model")
+
+                run_id = mlflow.active_run().info.run_id
+                model_uri = f"runs:/{run_id}/model"
+
+                mv = mlflow.register_model(model_uri=model_uri, name=registered_model_name)
+
+                client = MlflowClient()
+                client.transition_model_version_stage(
+                    name=registered_model_name,
+                    version=mv.version,
+                    stage="Production",
+                    archive_existing_versions=True
+                )
+
+                print(f"[INFO] 🚀 Registered '{registered_model_name}' v{mv.version} → Production")
+
+            except Exception as e:
+                print(f"[WARN] ⚠️ Model registry step skipped: {e}")
+
 
             print(f"[INFO] Linear Regression model saved at: {saved_path}")
             print(f"[INFO] Linear Regression training pipeline complete.\n")
             return metrics
+            
 
         finally:
             if self.use_mlflow and run_ctx and mlflow.active_run() and \

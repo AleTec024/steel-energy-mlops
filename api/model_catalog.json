@@ -1,0 +1,17 @@
+{
+  "default_model": "rf",
+  "models": {
+    "linear": {
+      "mode": "mlflow",
+      "uri": "models:/steel_energy_linear/Production"
+    },
+    "rf": {
+      "mode": "mlflow",
+      "uri": "models:/steel_energy_random_forest/Production"
+    },
+    "xgb": {
+      "mode": "mlflow",
+      "uri": "models:/steel_energy_xgboost/Production"
+    }
+  }
+}

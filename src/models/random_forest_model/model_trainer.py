@@ -240,6 +240,33 @@ class ModelTrainer:
                 json.dump(metrics, f, indent=2)
             mlflow.log_artifact(metrics_path)
 
+            # 6) Registrar modelo en MLflow Model Registry y promover a Production
+            try:
+                
+                from mlflow.tracking import MlflowClient
+
+                registered_model_name = "steel_energy_random_forest"
+
+                mlflow.sklearn.log_model(sk_model=self.model, artifact_path="model")
+
+                run_id = mlflow.active_run().info.run_id
+                model_uri = f"runs:/{run_id}/model"
+
+                mv = mlflow.register_model(model_uri=model_uri, name=registered_model_name)
+
+                client = MlflowClient()
+                client.transition_model_version_stage(
+                    name=registered_model_name,
+                    version=mv.version,
+                    stage="Production",
+                    archive_existing_versions=True
+                )
+
+                print(f"[INFO] 🚀 Registered '{registered_model_name}' v{mv.version} → Production")
+
+            except Exception as e:
+                print(f"[WARN] ⚠️ Model registry step skipped: {e}")
+
             # 6) Guardar modelo .pkl con timestamp + log
             saved_path = self.save_model(model_type=model_type, timestamp=timestamp)
             # mlflow.log_artifact(saved_path)
