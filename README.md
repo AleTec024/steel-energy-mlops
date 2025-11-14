@@ -220,24 +220,22 @@ client.transition_model_version_stage(
     archive_existing_versions=True
 )
 ```
-## Modelo en un contenedor (Docker)
-
+## 🚢 Modelo en un Contenedor (Docker)
 ### Desde la raíz del repo (steel-energy-mlops):
 
 ```bash
 # construir la imagen de la API
 docker build -t steel-energy-api:latest -f api/Dockerfile .
 ```
-
-
-Si tu MLflow sigue corriendo en tu máquina en http://127.0.0.1:5001,
-desde Docker necesitas apuntar a host.docker.internal (en macOS/Windows):
+Si tu MLflow está corriendo en tu máquina en http://127.0.0.1:5001,
+desde Docker necesitas apuntar a host.docker.internal (mac
 
 El entorno de entrenamiento usa requirements.txt de la raíz (fijado).
+El servicio de inferencia (API) usa api/requirements.txt (más ligero).
 
-El servicio de inferencia (API) usa api/requirements.txt (más ligero, solo dependencias necesarias para servir el modelo).
+### 🐳 Ejecutar el contenedor
 
-### El contenedor se construye con:
+Si usan artefactos locales(file:// ):
 
 ```bash
 docker run --rm \
@@ -245,3 +243,27 @@ docker run --rm \
   -e MLFLOW_TRACKING_URI=http://host.docker.internal:5001 \
   steel-energy-api:latest
 ```
+
+Si usas S3 para los artefactos
+Docker NO tiene tus credenciales, necesitas montarlas manualmente.
+```bash
+docker run --rm \
+  -p 8000:8000 \
+  -e MLFLOW_TRACKING_URI=http://host.docker.internal:5001 \
+  -e AWS_PROFILE=default \
+  -e AWS_REGION=us-east-1 \
+  -v $HOME/.aws:/root/.aws:ro \
+  steel-energy-api:latest
+  ```
+
+  Con esto, el contenedor podrá descargar modelos desde S3 cuando la API llame a MLflow.
+
+  ## 💡 Después de levantarlo
+
+  Accede a Swagger:
+  👉 http://localhost:8000/docs
+
+  Prueba:
+
+  GET /health?model=rf
+  POST /predict?model=xgb
