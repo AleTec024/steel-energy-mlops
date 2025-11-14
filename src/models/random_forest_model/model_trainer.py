@@ -7,6 +7,9 @@ from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from .config import MODEL_CONFIG, TRAINING_CONFIG
 
+from src.utils.seeds import set_global_seed
+
+
 # MLflow + utilidades
 import json
 from pathlib import Path
@@ -183,6 +186,9 @@ class ModelTrainer:
         # self._ensure_output_dirs()
         # print("[INFO] Starting Random Forest training pipeline...")
 
+        # Fijar semilla al inicio del run
+        seed = self.training_params.get("random_state", 42)
+        set_global_seed(seed)
        # 0) Configurar entorno de MLflow
         env_vars = load_env()
         mlflow.set_tracking_uri(env_vars["MLFLOW_TRACKING_URI"])  # ← apunta a RDS (OK)

@@ -9,6 +9,7 @@ from sklearn.pipeline import Pipeline
 
 from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
 from .config import MODEL_CONFIG, TRAINING_CONFIG
+from src.utils.seeds import set_global_seed
 
 # --- MLflow opcional y utilidades ---
 os.environ["MLFLOW_ENABLE_LOGGED_MODELS"] = "false"
@@ -176,6 +177,11 @@ class ModelTrainer:
         Full training + evaluation pipeline for Linear Regression.
         Saves model with timestamped filename and logs metrics.
         """
+        
+        # Fijar semilla al inicio del run
+        seed = self.training_params.get("random_state", 42)
+        set_global_seed(seed)
+        
         print("[INFO] Starting Linear Regression training pipeline...")
 
         # --- Forzar tracking a HTTP y experimento correcto (evita URI de Postgres) ---

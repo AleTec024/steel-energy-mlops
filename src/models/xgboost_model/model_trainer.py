@@ -11,6 +11,8 @@ from .config import MODEL_CONFIG, TRAINING_CONFIG
 from src.pipelines.data_setup import FeatureConfig, DEFAULT_FEATURE_CONFIG
 from src.pipelines.experiment_pipelines import build_feature_engineering_pipeline, build_preprocessor
 
+from src.utils.seeds import set_global_seed
+
 # --- MLflow opcional y utilidades ---
 os.environ["MLFLOW_ENABLE_LOGGED_MODELS"] = "false"
 
@@ -196,6 +198,11 @@ class ModelTrainer:
         Full training + evaluation pipeline for XGBoost.
         Saves model with timestamped filename and logs metrics.
         """
+
+        # Fijar semilla al inicio del run
+        seed = self.training_params.get("random_state", 42)
+        set_global_seed(seed)
+
         print("[INFO] Starting XGBoost training pipeline...")
 
         run_ctx = self._mlflow_start(run_name=f"{model_type}_run")
