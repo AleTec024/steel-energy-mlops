@@ -230,3 +230,5 @@ models/**/artifacts/
 *.pkl
 *.h5
 *.joblib
+
+api/mlartifacts/
