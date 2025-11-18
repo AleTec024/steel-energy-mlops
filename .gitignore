@@ -232,3 +232,4 @@ models/**/artifacts/
 *.joblib
 
 api/mlartifacts/
+mlartifacts/

@@ -68,14 +68,18 @@ def main():
 
     cfg = load_cfg()  # reads params.yaml
 
+    # Execute data_loader stage if needed
     if args.stage in ("all", "data_loader"):
         processed = run_data_loader(cfg)
     else:
         processed = cfg["data"]["processed_path"]
 
+    # Execute feature_engineering stage if needed
     if args.stage in ("all", "feature_engineering"):
         X_train, X_test, y_train, y_test = run_feature_engineering(cfg, processed)
-    else:
+
+    # Execute train stage if needed
+    if args.stage == "train":
         # If someone runs "train" directly, load features.csv (created by FeatureEngineer)
         df = pd.read_csv("data/interim/features.csv")
         features = cfg["features"]["selected"]; target = cfg["features"]["target"]
@@ -84,8 +88,9 @@ def main():
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
-
-    if args.stage in ("all", "train"):
+        run_training(cfg, X_train, X_test, y_train, y_test)
+    elif args.stage == "all":
+        # If running full pipeline, X_train/X_test already exist from feature_engineering
         run_training(cfg, X_train, X_test, y_train, y_test)
 
 if __name__ == "__main__":

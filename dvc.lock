@@ -5,33 +5,33 @@ stages:
     deps:
     - path: data/clean/steel_energy_cleaned_V2.csv
       hash: md5
-      md5: f9b2bf1156175d4d8c8c8d645c21cdfd
-      size: 5703433
+      md5: 3c90e04e716f464f74335febcb79a6b9
+      size: 5738756
     - path: src/data/data_loader.py
       hash: md5
-      md5: 1ec79ff2337369664421da04b88a8f8a
-      size: 3143
+      md5: 53c324096d96894a2459eb7dcf250cc2
+      size: 3240
     outs:
     - path: data/processed/steel_energy_processed.csv
       hash: md5
-      md5: 9218542ac6a01da797a4ae934e103fe8
-      size: 2551398
+      md5: 20d922c8c5d37fbae386e4943dff8af6
+      size: 2563941
   feature_engineering:
     cmd: python -m src.main --stage feature_engineering
     deps:
     - path: data/processed/steel_energy_processed.csv
       hash: md5
-      md5: 9218542ac6a01da797a4ae934e103fe8
-      size: 2551398
+      md5: 20d922c8c5d37fbae386e4943dff8af6
+      size: 2563941
     - path: src/data/feature_engineer.py
       hash: md5
-      md5: 7c5ced138a8e9382cfb2a61939139174
-      size: 10575
+      md5: 0354113c903d32c20abd7ef8b42fced2
+      size: 10854
     outs:
     - path: data/interim/features.csv
       hash: md5
-      md5: 59e7937ef99320a36d6301bb610ade34
-      size: 1664034
+      md5: 44e687e98efdda7ac61c667cfca15253
+      size: 1676057
   train_xgboost:
     cmd: python -m src.main --stage train_xgboost
     deps:
@@ -67,16 +67,16 @@ stages:
       size: 1676057
     - path: src/models/linear_regression_model/model_trainer.py
       hash: md5
-      md5: 02b319ec54dd4cf0103c2d694f8723ae
-      size: 3541
+      md5: 1fc8fb9bb3fff17f7d87b86e37c3ad90
+      size: 13561
     - path: src/models/random_forest_model/model_trainer.py
       hash: md5
-      md5: 6f1bab95b3410fe460b36f9dfc6afb34
-      size: 3536
+      md5: b327d6103d2b54b950ac1fcfb3cd223f
+      size: 13960
     - path: src/models/xgboost_model/model_trainer.py
       hash: md5
-      md5: 581bc698e222b40e05b6bd9bf5bd1e36
-      size: 3803
+      md5: 33cc5ebf595622bfab5703ac921a1101
+      size: 12864
     params:
       params.yaml:
         train.cv_folds: 5
@@ -85,27 +85,27 @@ stages:
           n_jobs:
         train.model_type: xgboost
         train.random_forest:
-          n_estimators: 300
           max_depth:
-          min_samples_split: 2
-          min_samples_leaf: 1
           max_features:
-          random_state: 42
+          min_samples_leaf: 1
+          min_samples_split: 2
+          n_estimators: 300
           n_jobs: -1
+          random_state: 42
         train.xgboost:
-          n_estimators: 200
-          learning_rate: 0.1
-          max_depth: 6
-          subsample: 0.8
           colsample_bytree: 0.8
           eval_metric: rmse
-          random_state: 42
+          learning_rate: 0.1
+          max_depth: 6
+          n_estimators: 200
           n_jobs: -1
+          random_state: 42
+          subsample: 0.8
     outs:
     - path: models/xgboost/artifacts
       hash: md5
-      md5: 865033dbb0c098a8d2d115c7d2ff98e5.dir
-      size: 852614
+      md5: 34f69ae49423e923a52d5cfc6da1a8e0.dir
+      size: 854308
       nfiles: 1
   train_suite:
     cmd: python -m src.pipelines.experiment_pipelines --params params.yaml
